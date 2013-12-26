@@ -8,6 +8,7 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 #INTERNAL Imports
+import mkbrain
 
 #SYS Imports
 import time, random
@@ -61,9 +62,10 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'nickname')
         realname = cfg.get('Bot Settings', 'realname')
-        owner = cfg.get('Users', 'owner')
+        max_words = cfg.getint('Bot Settings', 'max_words')
         self.nickname = nickname
         self.realname = realname
+        self.max_words = max_words
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -96,17 +98,19 @@ class ThorBot(irc.IRCClient):
     def userJoined(self, user, channel):
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
+
         chance = random.random()
-        if chance > 0.2:
-            print "Welcomed %s. Chance:", chance
-            self.msg(channel, msg)
+
+        if chance >= 0.4:
+                print "Welcomed %s. Chance: %s" % (user, chance)
+                msg = "Welcome to %s, %s" % (channel, user)
+                self.msg(channel, msg)
+        if chance <= 0.4:
+            print "Chance:", chance
         self.logger.log("%s has joined %s" % (user, channel))
 
     def userLeft(self, user, channel):
         self.logger.log("%s has left %s channel. Bubye." % (user, channel))
-        print "%s has left %s" % (user, channel)
-        msg = "Bye, %s" % user
-        self.msg(channel, msg)
 
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
@@ -115,14 +119,11 @@ class ThorBot(irc.IRCClient):
         user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
 
-        if msg.startswith("!test"):
-            print "Test Successful"
 
         if msg.startswith("!i"):
             #If called, states owner and nickname(completely redundant, but rather cool)
             nickname = cfg.get('Bot Settings', 'nickname')
             owner = cfg.get('Users', 'owner')
-            print "Was mentioned."
             msg = "Hello, %s. I am %s, a bot belonging to %s" % (user, nickname, owner)
             self.msg(channel, msg)
 
@@ -130,15 +131,15 @@ class ThorBot(irc.IRCClient):
             #Leaves the channel(can be called outside said channel?)
             self.leave(channel)
 
-        if msg.startswith("!join %s" % channel):
+        if msg == ("!join %s" % channel):
             #Joins designated channel.
             print "Joining %s" % channel
             self.join(channel)
 
-        if msg.startswith("!nick %s" % str):
+        if msg.startswith("!nick %s" % str()):
             #Changes nickname
-            newnick = str
-            self.setNick(nickname=newnick)
+            new_nick = str()
+            self.setNick(nickname=new_nick)
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
@@ -147,11 +148,6 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith(self.nickname + ": Talk!"):
             msg = "%s: No, go duck yourself, foo'" % user
-            self.msg(channel, msg)
-            self.logger.log("<%s> %s" % (self.nickname, msg))
-
-        if msg.startswith(self.nickname + ":"):
-            msg = "%s: I am a log bot" % user
             self.msg(channel, msg)
             self.logger.log("<%s> %s" % (self.nickname, msg))
 
