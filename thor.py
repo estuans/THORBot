@@ -26,14 +26,7 @@ versionNumber = "1.0"
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
 
-
-#server = cfg.get('Connection', 'server')
-#port = cfg.getint('Connection', 'port')
-#__channel = cfg.get('Connection', 'channel')
-#owner = cfg.get('Users', 'owner')
-#admins = cfg.get('Users', 'admins')
 logfile = cfg.get('Connection', 'logfile')
-#realname = cfg.get('Bot Settings', 'realname')
 
 # WOLFRAMALPHA implementation
 
@@ -90,17 +83,21 @@ class ThorBot(irc.IRCClient):
     #EVENTS
 
     def signedOn(self):
+        print "Signed on successfully"
         self.join(self.factory.channel)
 
     def joined(self, channel):
+        print "Joined %s" % channel
         self.logger.log("[JOINED %s]" % channel)
 
     def userJoined(self, user, channel):
+        print "%s has joined %s" % (user, channel)
         self.logger.log("%s has joined %s" % (user, channel))
 
     def userLeft(self, user, channel):
         self.logger.log("%s has left %s channel. Bubye." % (user, channel))
-        channel.message("Goodbye, %s" % user)
+        print "%s has left %s" % (user, channel)
+        channel.msg("Goodbye, %s" % user)
 
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
@@ -111,10 +108,6 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!test"):
             print "Test Successful"
-
-    #    if message.startswith("!leave"):
-    #        print "!leave was called"
-    #        self.leave(channel)
 
         if msg.startswith(self.nickname + ":" or "," or " "):
             print "Was mentioned."
