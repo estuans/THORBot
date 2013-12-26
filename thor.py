@@ -10,7 +10,7 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 
 #SYS Imports
-import time
+import time, random
 
 #OTHER Imports
 import ConfigParser
@@ -61,6 +61,7 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'nickname')
         realname = cfg.get('Bot Settings', 'realname')
+        owner = cfg.get('Users', 'owner')
         self.nickname = nickname
         self.realname = realname
 
@@ -83,21 +84,29 @@ class ThorBot(irc.IRCClient):
     #EVENTS
 
     def signedOn(self):
+        #Called when signing on
         print "Signed on successfully"
         self.join(self.factory.channel)
 
     def joined(self, channel):
+        #Called when joining a channel
         print "Joined %s" % channel
         self.logger.log("[JOINED %s]" % channel)
 
     def userJoined(self, user, channel):
+        #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
+        chance = random.random()
+        if chance > 0.2:
+            print "Welcomed %s. Chance:", chance
+            self.msg(channel, msg)
         self.logger.log("%s has joined %s" % (user, channel))
 
     def userLeft(self, user, channel):
         self.logger.log("%s has left %s channel. Bubye." % (user, channel))
         print "%s has left %s" % (user, channel)
-        channel.msg("Goodbye, %s" % user)
+        msg = "Bye, %s" % user
+        self.msg(channel, msg)
 
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
@@ -109,19 +118,27 @@ class ThorBot(irc.IRCClient):
         if msg.startswith("!test"):
             print "Test Successful"
 
-        if msg.startswith(self.nickname + ":" or "," or " "):
+        if msg.startswith("!i"):
+            #If called, states owner and nickname(completely redundant, but rather cool)
+            nickname = cfg.get('Bot Settings', 'nickname')
+            owner = cfg.get('Users', 'owner')
             print "Was mentioned."
-            msg = "You called?"
+            msg = "Hello, %s. I am %s, a bot belonging to %s" % (user, nickname, owner)
+            self.msg(channel, msg)
 
         if msg.startswith("!leave %s" % channel):
+            #Leaves the channel(can be called outside said channel?)
             self.leave(channel)
 
         if msg.startswith("!join %s" % channel):
+            #Joins designated channel.
             print "Joining %s" % channel
             self.join(channel)
 
         if msg.startswith("!nick %s" % str):
-            self.setNick(nickname=str)
+            #Changes nickname
+            newnick = str
+            self.setNick(nickname=newnick)
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
