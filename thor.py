@@ -8,10 +8,14 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 #INTERNAL Imports
-import mkbrain
 
 #SYS Imports
-import time, random
+import time
+import random
+import re
+import os
+import redis
+from collections import defaultdict
 
 #OTHER Imports
 import ConfigParser
@@ -27,11 +31,49 @@ versionNumber = "1.0"
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
 
-logfile = cfg.get('Connection', 'logfile')
+logfile = cfg.get('Connection', 'Logfile')
 
 # WOLFRAMALPHA implementation
 
 client = wolframalpha.Client('YT6T34-E7L5L5YWWK')
+
+#MARKOV integration
+markov = defaultdict(list)
+STOP_WORD = "\n"
+
+
+def add_to_brain(msg, chain_length, write_to_file=False):
+    if write_to_file:
+        f = open('brain.txt', 'a')
+        f.write(msg + '\n')
+        f.close()
+    buf = [STOP_WORD] * chain_length
+    for word in msg.split():
+        markov[tuple(buf)].append(word)
+        del buf[0]
+        buf.append(word)
+    markov[tuple(buf)].append(STOP_WORD)
+
+
+def generate_sentence(msg, chain_length, max_words):
+    buf = msg.split()[:chain_length]
+    if len(msg.split()) > chain_length:
+        message = buf[:]
+    else:
+        message = []
+        for i in xrange(chain_length):
+            message.append(random.choice(markov[random.choice(markov.keys())]))
+        for i in xrange(max_words):
+            try:
+                next_word = random.choice(markov[tuple(buf)])
+            except IndexError:
+                continue
+            if next_word == STOP_WORD:
+                break
+            message.append(next_word)
+            del buf[0]
+            buf.append(next_word)
+        return ' '.join(message)
 
 
 class Bin:
@@ -60,12 +102,10 @@ class ThorBot(irc.IRCClient):
     """
 
     def __init__(self):
-        nickname = cfg.get('Bot Settings', 'nickname')
-        realname = cfg.get('Bot Settings', 'realname')
-        max_words = cfg.getint('Bot Settings', 'max_words')
+        nickname = cfg.get('Bot Settings', 'Nickname')
+        realname = cfg.get('Bot Settings', 'Realname')
         self.nickname = nickname
         self.realname = realname
-        self.max_words = max_words
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -119,6 +159,18 @@ class ThorBot(irc.IRCClient):
         user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
 
+        if not user:
+            return
+        if self.nickname in msg:
+            msg = re.compile(self.nickname + "[:,]* ?", re.I).sub('', msg)
+            prefix = "%s: " % (user.split('!', 1)[0], )
+        else:
+            prefix = ''
+        add_to_brain(msg, self.factory.chain_length, write_to_file=True)
+        if prefix or random.random() <= self.factory.chattiness:
+            sentence = generate_sentence(msg, self.factory.chain_length, self.factory.max_words)
+            if sentence:
+                self.msg(self.factory.channel, prefix + sentence)
 
         if msg.startswith("!i"):
             #If called, states owner and nickname(completely redundant, but rather cool)
