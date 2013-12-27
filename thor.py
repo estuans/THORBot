@@ -181,7 +181,7 @@ class ThorBot(irc.IRCClient):
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
                 self.msg(channel, prefix + sentence)
-                self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, sentence))
+                self.logger.log("[%s] <%s> %s" % (channel, self.nickname, sentence))
             else:
                 print "Markov function called, but failed to generate sentence."
                 self.logger.log("Markov function was called, but failed to generate a sentence.")
@@ -193,7 +193,7 @@ class ThorBot(irc.IRCClient):
             nickname = cfg.get('Bot Settings', 'Nickname')
             owner = cfg.get('Users', 'Owner')
             msg = "Hello, %s. I am %s, a bot belonging to %s" % (user, nickname, owner)
-            self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, self.msg))
+            self.logger.log("[%s] <%s> %s" % (channel, self.nickname, self.msg))
             self.msg(channel, msg)
 
         if msg.startswith("!leave %s" % channel) and user == (owner or admins):
@@ -224,7 +224,7 @@ class ThorBot(irc.IRCClient):
         if msg.startswith(self.nickname + ": Talk!"):
             msg = "%s: No, go duck yourself, foo'" % user
             self.msg(channel, msg)
-            self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, self.msg))
+            self.logger.log("[%s] <%s> %s" % (channel, self.nickname, self.msg))
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
