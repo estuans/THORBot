@@ -156,7 +156,7 @@ class ThorBot(irc.IRCClient):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
 
     def privmsg(self, user, channel, msg):
-        user = user.split('!', 1)[0]
+        #user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
 
         if not user:

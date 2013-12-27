@@ -22,7 +22,7 @@ logfile = cfg.get('Connection', 'Logfile')
 class ThorBotFactory(protocol.ClientFactory):
     protocol = ThorBot
 
-    def __init__(self, channel, filename, chain_length=3, chattiness=1.0, max_words=10000):
+    def __init__(self, channel, filename, chain_length=1, chattiness=1.0, max_words=10000):
         self.channel = channel
         self.filename = filename
         self.logfile = logfile
@@ -53,5 +53,5 @@ if __name__ == '__main__':
         print 'Brain Loaded'
         f.close()
     log.startLogging(sys.stdout)
-    reactor.connectTCP(server, port, ThorBotFactory(__channel, logfile, chain_length, chattiness=0.05))
+    reactor.connectTCP(server, port, ThorBotFactory(__channel, logfile, chain_length=3, chattiness=0.05))
     reactor.run()
