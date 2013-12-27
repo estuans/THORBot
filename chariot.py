@@ -15,7 +15,7 @@ cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
 server = cfg.get('Connection', 'Server')
 port = cfg.getint('Connection', 'Port')
-__channel = cfg.get('Connection', 'Channel')
+__channels = cfg.get('Connection', 'Channels')
 logfile = cfg.get('Connection', 'Logfile')
 
 
@@ -55,5 +55,5 @@ if __name__ == '__main__':
         print 'Brain Loaded'
         f.close()
     log.startLogging(sys.stdout)
-    reactor.connectTCP(server, port, ThorBotFactory(__channel, logfile, chain_length, chattiness, max_words))
+    reactor.connectTCP(server, port, ThorBotFactory(__channels, logfile, chain_length, chattiness, max_words))
     reactor.run()

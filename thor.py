@@ -35,7 +35,7 @@ logfile = cfg.get('Connection', 'Logfile')
 
 # WOLFRAMALPHA implementation
 
-client = wolframalpha.Client('YT6T34-E7L5L5YWWK')
+api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
 
 #MARKOV integration
 markov = defaultdict(list)
@@ -104,8 +104,13 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'Nickname')
         realname = cfg.get('Bot Settings', 'Realname')
+        owner = cfg.get('Users', 'Owner')
+        admins = cfg.get('Users', 'Admins')
+        self.wolfram = wolframalpha
         self.nickname = nickname
         self.realname = realname
+        self.owner = owner
+        self.admins = admins
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -133,8 +138,6 @@ class ThorBot(irc.IRCClient):
     def joined(self, channel):
         #Called when joining a channel
         print "Joined %s" % channel
-        msg = "Thor is in the HOOOOUSE!"
-        self.msg(channel, msg)
         self.logger.log("[JOINED %s]" % channel)
 
     def userJoined(self, user, channel):
@@ -146,6 +149,7 @@ class ThorBot(irc.IRCClient):
         if chance >= 0.4:
                 print "Welcomed %s. Chance: %s" % (user, chance)
                 msg = "Welcome to %s, %s" % (channel, user)
+                self.logger.log(msg)
                 self.msg(channel, msg)
         if chance <= 0.4:
             print "Chance:", chance
@@ -161,8 +165,9 @@ class ThorBot(irc.IRCClient):
         user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
         chain_length = cfg.getint('Bot Settings', 'Chain Length')
-        chattiness = cfg.getfloat('Bot Settings', 'Chattiness')
         max_words = cfg.getint('Bot Settings', 'Max Words')
+        owner = cfg.get('Users', 'Owner')
+        admins = cfg.get('Users', 'Admins')
         prefix = "%s: " % user
 
        #Thor's markov implementation wasn't playing ball, so I had
@@ -171,27 +176,38 @@ class ThorBot(irc.IRCClient):
        #It's not the best way, but it's the least intrusive.
 
         if msg.startswith("!markov"):
+            #Silly command that just produces a bunch of garbled text from brain.txt
             msg = re.compile(self.nickname + "[:,]* ?", re.I).sub('', msg)
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
-                self.say(channel, prefix + sentence)
+                self.msg(channel, prefix + sentence)
+                self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, sentence))
+            else:
+                print "Markov function called, but failed to generate sentence."
+                self.logger.log("Markov function was called, but failed to generate a sentence.")
 
         add_to_brain(msg, chain_length, write_to_file=True)
 
-        if msg.startswith("!i"):
-            #If called, states owner and nickname(completely redundant, but rather cool)
-            nickname = cfg.get('Bot Settings', 'nickname')
-            owner = cfg.get('Users', 'owner')
+        if msg.startswith("!info"):
+            #If called, states owner and nickname
+            nickname = cfg.get('Bot Settings', 'Nickname')
+            owner = cfg.get('Users', 'Owner')
             msg = "Hello, %s. I am %s, a bot belonging to %s" % (user, nickname, owner)
+            self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, self.msg))
             self.msg(channel, msg)
 
-        if msg.startswith("!leave %s" % channel):
+        if msg.startswith("!leave %s" % channel) and user == (owner or admins):
             #Leaves the channel(can be called outside said channel?)
+            self.logger.log("[%s] <%s> %s" % (channel, user, msg))
             self.leave(channel)
 
-        if msg == ("!join %s" % channel):
+        if msg == "!disconnect" and user == (owner or admins):
+            self.quit(message="Disconnected per request")
+            self.logger.log("Disconnected per request of %s" % user)
+
+        if msg == ("!join %s" % str) and user == (owner or admins):
             #Joins designated channel.
-            print "Joining %s" % channel
+            channel = str
             self.join(channel)
 
         if msg.startswith("!nick %s" % str()):
@@ -201,17 +217,18 @@ class ThorBot(irc.IRCClient):
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
+            self.logger.log("<%s> %s" % (self.nickname, self.msg))
             self.msg(user, msg)
             return
 
         if msg.startswith(self.nickname + ": Talk!"):
             msg = "%s: No, go duck yourself, foo'" % user
             self.msg(channel, msg)
-            self.logger.log("<%s> %s" % (self.nickname, msg))
+            self.logger.log("[%s] <%s> %s" % (self.channel, self.nickname, self.msg))
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
-        self.logger.log("* %s %s" % (user, message))
+        self.logger.log("[%s] * %s %s" % (channel, user, message))
 
     #IRC CALLBACKS
 
