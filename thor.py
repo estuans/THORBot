@@ -39,13 +39,13 @@ client = wolframalpha.Client('YT6T34-E7L5L5YWWK')
 
 #MARKOV integration
 markov = defaultdict(list)
-STOP_WORD = "\n"
+STOP_WORD = ""
 
 
 def add_to_brain(msg, chain_length, write_to_file=False):
     if write_to_file:
         f = open('brain.txt', 'a')
-        f.write(msg + '\n')
+        f.write(msg + '')
         f.close()
     buf = [STOP_WORD] * chain_length
     for word in msg.split():
@@ -69,7 +69,7 @@ def generate_sentence(msg, chain_length, max_words):
             except IndexError:
                 continue
             if next_word == STOP_WORD:
-                break
+                return
             message.append(next_word)
             del buf[0]
             buf.append(next_word)
@@ -133,6 +133,8 @@ class ThorBot(irc.IRCClient):
     def joined(self, channel):
         #Called when joining a channel
         print "Joined %s" % channel
+        msg = "Thor is in the HOOOOUSE!"
+        self.msg(channel, msg)
         self.logger.log("[JOINED %s]" % channel)
 
     def userJoined(self, user, channel):
@@ -156,21 +158,25 @@ class ThorBot(irc.IRCClient):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
 
     def privmsg(self, user, channel, msg):
-        #user = user.split('!', 1)[0]
+        user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
+        chain_length = cfg.getint('Bot Settings', 'Chain Length')
+        chattiness = cfg.getfloat('Bot Settings', 'Chattiness')
+        max_words = cfg.getint('Bot Settings', 'Max Words')
+        prefix = "%s: " % user
 
-        if not user:
-            return
-        if self.nickname in msg:
+       #Thor's markov implementation wasn't playing ball, so I had
+       #To alter the vast majority of the code. Instead of replying randomly,
+       #He now only generates when prompted by the !markov command.
+       #It's not the best way, but it's the least intrusive.
+
+        if msg.startswith("!markov"):
             msg = re.compile(self.nickname + "[:,]* ?", re.I).sub('', msg)
-            prefix = "%s: " % (user.split('!', 1)[0], )
-        else:
-            prefix = ''
-        add_to_brain(msg, self.factory.chain_length, write_to_file=True)
-        if prefix or random.random() <= self.factory.chattiness:
-            sentence = generate_sentence(msg, self.factory.chain_length, self.factory.max_words)
+            sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
-                self.msg(self.factory.channel, prefix + sentence)
+                self.say(channel, prefix + sentence)
+
+        add_to_brain(msg, chain_length, write_to_file=True)
 
         if msg.startswith("!i"):
             #If called, states owner and nickname(completely redundant, but rather cool)
