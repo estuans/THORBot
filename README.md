@@ -22,3 +22,10 @@ Usage
 
 As of the current revision, the bot isn't set up to accept more than a !leave [channel] command. There are certain
 commands that will print a message to the console for debugging, but mostly it just logs and leaves.
+
+Todo
+=======
+
+- Need to create a database function that stores permissions, channels, etc.
+
+- Fix !invite and !join
