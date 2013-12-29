@@ -48,8 +48,8 @@ if __name__ == '__main__':
     chain_length = cfg.getint('Bot Settings', 'Chain Length')
     chattiness = cfg.getfloat('Bot Settings', 'Chattiness')
     max_words = cfg.getint('Bot Settings', 'Max Words')
-    if os.path.exists('brain.txt'):
-        f = open('brain.txt', 'r')
+    if os.path.exists('brain'):
+        f = open('brain', 'r')
         for line in f:
             thor.add_to_brain(line, chain_length)
         print 'Brain Loaded'
