@@ -1,3 +1,4 @@
+#!/usr/bin/python
 '''
 THOR connects to an IRC network, joins a channel, and keeps a log of everything that goes on.
 WolframAlpha integration will come later.
@@ -13,8 +14,6 @@ from twisted.words.protocols import irc
 import time
 import random
 import re
-import os
-import redis
 from collections import defaultdict
 
 #OTHER Imports
@@ -22,11 +21,10 @@ import ConfigParser
 import wolframalpha
 
 #Basic Inf
-versionName = "Tarvos"
-versionNumber = "1.0"
+versionName = "Apple"
+versionNumber = "0.0223b"
 
-#The below lines have been, mostly, commented out due to the deprecation of their functions
-#I retain them here in order to roll back in case of emergency
+#Config parser. Could be replaced in the future?
 
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
@@ -44,7 +42,7 @@ STOP_WORD = ""
 
 def add_to_brain(msg, chain_length, write_to_file=False):
     if write_to_file:
-        f = open('brain.txt', 'a')
+        f = open('brain', 'a')
         f.write(msg + '')
         f.close()
     buf = [STOP_WORD] * chain_length
@@ -106,13 +104,13 @@ class ThorBot(irc.IRCClient):
         realname = cfg.get('Bot Settings', 'Realname')
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
-        self.wolfram = wolframalpha
         self.nickname = nickname
         self.realname = realname
         self.owner = owner
         self.admins = admins
 
     def connectionMade(self):
+        #First we connect
         irc.IRCClient.connectionMade(self)
         self.logger = Bin(open(self.factory.filename, "a"))
         self.logger.log("[CONNECTED @ %s]" % time.asctime(time.localtime(time.time())))
@@ -164,19 +162,25 @@ class ThorBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
         self.logger.log("<%s> %s" % (user, msg))
+
+        #Used by the Markov command
+        prefix = "%s: " % user
+
+        #PRIVMSG Configuration parameters
         chain_length = cfg.getint('Bot Settings', 'Chain Length')
         max_words = cfg.getint('Bot Settings', 'Max Words')
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
-        prefix = "%s: " % user
 
        #Thor's markov implementation wasn't playing ball, so I had
        #To alter the vast majority of the code. Instead of replying randomly,
        #He now only generates when prompted by the !markov command.
        #It's not the best way, but it's the least intrusive.
 
-        if msg.startswith("!markov"):
+        if msg == "!markov":
             #Silly command that just produces a bunch of garbled text from brain.txt
+            #Might be expanded upon at a later time, but in all likelihood
+            #I'll try to replace it with a natural learning/machine learning command.
             msg = re.compile(self.nickname + "[:,]* ?", re.I).sub('', msg)
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
@@ -187,6 +191,25 @@ class ThorBot(irc.IRCClient):
                 self.logger.log("Markov function was called, but failed to generate a sentence.")
 
         add_to_brain(msg, chain_length, write_to_file=True)
+
+        if msg == "!version":
+            #Passes version and version number to channel
+            msg = "Version: {vnam}(NUMBER {vnum})".format(vnam=versionName, vnum=versionNumber)
+            self.msg(channel, msg)
+
+        if msg == "!inv {user} {chan}".format(user=str, chan=channel):
+            #Broken. Meant to invite person.
+            self.invite(str, channel)
+            msg = "Inviting {user} into {chan}".format(user=user, chan=channel)
+            self.msg(channel, msg)
+            self.logger.log("Invited {user} into {chan}".format(user=user, chan=channel))
+
+        if msg == "!rickroll":
+            #... It was a silly idea, okay?
+            msg = "Never gonna give you up,\nNever gonna let you down,\n" \
+                  "Never gonna run around and desert you.\n" \
+                  "Never gonna make you cry,\nNever gonna say goodbye,\nNever gonna tell a lie and hurt you.\n"
+            self.msg(channel, msg)
 
         if msg.startswith("!info"):
             #If called, states owner and nickname
@@ -205,15 +228,16 @@ class ThorBot(irc.IRCClient):
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
 
+
+
         if msg == ("!join %s" % str) and user == (owner or admins):
             #Joins designated channel.
             channel = str
             self.join(channel)
 
-        if msg.startswith("!nick %s" % str()):
+        if msg == "!nick %s" % str():
             #Changes nickname
-            new_nick = str()
-            self.setNick(nickname=new_nick)
+            self.setNick(str())
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
