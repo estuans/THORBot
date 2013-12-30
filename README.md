@@ -29,3 +29,10 @@ Todo
 - Need to create a database function that stores permissions, channels, etc.
 
 - Fix !invite and !join
+
+Dependencies
+=======
+
+Due to Thor's nature, he requires certain things to be present for him to function.
+
+Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords

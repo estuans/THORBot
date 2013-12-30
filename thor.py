@@ -14,6 +14,7 @@ from twisted.words.protocols import irc
 import time
 import random
 import re
+import os
 from collections import defaultdict
 
 #OTHER Imports
@@ -37,13 +38,13 @@ api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
 
 #MARKOV integration
 markov = defaultdict(list)
-STOP_WORD = ""
+STOP_WORD = "\r\n"
 
 
 def add_to_brain(msg, chain_length, write_to_file=False):
     if write_to_file:
-        f = open('brain', 'a')
-        f.write(msg + '')
+        f = open('brain.txt', 'a')
+        f.write(msg + '\r')
         f.close()
     buf = [STOP_WORD] * chain_length
     for word in msg.split():
@@ -144,12 +145,12 @@ class ThorBot(irc.IRCClient):
 
         chance = random.random()
 
-        if chance >= 0.4:
+        if chance >= 0.2:
                 print "Welcomed %s. Chance: %s" % (user, chance)
                 msg = "Welcome to %s, %s" % (channel, user)
                 self.logger.log(msg)
                 self.msg(channel, msg)
-        if chance <= 0.4:
+        if chance <= 0.2:
             print "Chance:", chance
         self.logger.log("%s has joined %s" % (user, channel))
 
@@ -158,6 +159,11 @@ class ThorBot(irc.IRCClient):
 
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
+
+    def userKicked(self, kickee, channel, kicker, message):
+        self.logger.log("{us} was kicked from {ch} by {ki}".format(us=kickee, ch=channel, ki=kicker))
+        msg = "{us} must have pissed {ki} off!".format(us=kickee, ki=kicker)
+        self.msg(channel, msg)
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
@@ -181,7 +187,7 @@ class ThorBot(irc.IRCClient):
             #Silly command that just produces a bunch of garbled text from brain.txt
             #Might be expanded upon at a later time, but in all likelihood
             #I'll try to replace it with a natural learning/machine learning command.
-            msg = re.compile(self.nickname + "[:,]* ?", re.I).sub('', msg)
+            msg = re.compile(self.nickname + "[:,]").sub('', msg)
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
                 self.msg(channel, prefix + sentence)
@@ -191,6 +197,9 @@ class ThorBot(irc.IRCClient):
                 self.logger.log("Markov function was called, but failed to generate a sentence.")
 
         add_to_brain(msg, chain_length, write_to_file=True)
+
+        if msg.__contains__(self.nickname + "start the guessing game"):
+            os.system("games.py")
 
         if msg == "!version":
             #Passes version and version number to channel
@@ -228,16 +237,10 @@ class ThorBot(irc.IRCClient):
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
 
-
-
         if msg == ("!join %s" % str) and user == (owner or admins):
             #Joins designated channel.
             channel = str
             self.join(channel)
-
-        if msg == "!nick %s" % str():
-            #Changes nickname
-            self.setNick(str())
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
@@ -249,6 +252,10 @@ class ThorBot(irc.IRCClient):
             msg = "%s: No, go duck yourself, foo'" % user
             self.msg(channel, msg)
             self.logger.log("[%s] <%s> %s" % (channel, self.nickname, self.msg))
+
+        if msg == "Thor{s} how many channels are there?".format(s=","":"" "):
+            msg = "There are {nchan} channel(s) on this network.".format(nchan=self.luserChannels(channels=int))
+            self.msg(channel, msg)
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
