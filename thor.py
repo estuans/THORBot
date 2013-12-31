@@ -9,6 +9,7 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 #INTERNAL Imports
+from modules import wolfram
 
 #SYS Imports
 import time
@@ -23,7 +24,7 @@ import wolframalpha
 
 #Basic Inf
 versionName = "Apple"
-versionNumber = "0.0223b"
+versionNumber = "0.0302a"
 
 #Config parser. Could be replaced in the future?
 
@@ -34,11 +35,11 @@ logfile = cfg.get('Connection', 'Logfile')
 
 # WOLFRAMALPHA implementation
 
-api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
+#api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
 
 #MARKOV integration
 markov = defaultdict(list)
-STOP_WORD = "\r\n"
+STOP_WORD = ""
 
 
 def add_to_brain(msg, chain_length, write_to_file=False):
@@ -167,7 +168,10 @@ class ThorBot(irc.IRCClient):
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
-        self.logger.log("<%s> %s" % (user, msg))
+        self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
+
+        #Used by the Join command
+        nch = []
 
         #Used by the Markov command
         prefix = "%s: " % user
@@ -183,32 +187,36 @@ class ThorBot(irc.IRCClient):
        #He now only generates when prompted by the !markov command.
        #It's not the best way, but it's the least intrusive.
 
-        if msg == "!markov":
+        if self.msg:
+            #Logs own messages, so long as self.msg() is called
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=self.msg))
+
+        if msg.__contains__(self.nickname):
             #Silly command that just produces a bunch of garbled text from brain.txt
             #Might be expanded upon at a later time, but in all likelihood
             #I'll try to replace it with a natural learning/machine learning command.
-            msg = re.compile(self.nickname + "[:,]").sub('', msg)
+            msg = re.compile(self.nickname + "[:,]* ?").sub('', msg)
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
-                self.msg(channel, prefix + sentence)
-                self.logger.log("[%s] <%s> %s" % (channel, self.nickname, sentence))
+                ' '.join(sentence.split())
+                re.split(msg, sentence)
+                self.msg(channel, prefix + sentence + ".")
+                self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=sentence))
+                print sentence
             else:
                 print "Markov function called, but failed to generate sentence."
                 self.logger.log("Markov function was called, but failed to generate a sentence.")
 
         add_to_brain(msg, chain_length, write_to_file=True)
 
-        if msg.__contains__(self.nickname + "start the guessing game"):
-            os.system("games.py")
-
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version: {vnam}(NUMBER {vnum})".format(vnam=versionName, vnum=versionNumber)
             self.msg(channel, msg)
 
-        if msg == "!inv {user} {chan}".format(user=str, chan=channel):
+        if msg == "!inv {user} {chan}".format(user=user, chan=channel):
             #Broken. Meant to invite person.
-            self.invite(str, channel)
+            self.invite(user, channel)
             msg = "Inviting {user} into {chan}".format(user=user, chan=channel)
             self.msg(channel, msg)
             self.logger.log("Invited {user} into {chan}".format(user=user, chan=channel))
@@ -219,28 +227,28 @@ class ThorBot(irc.IRCClient):
                   "Never gonna run around and desert you.\n" \
                   "Never gonna make you cry,\nNever gonna say goodbye,\nNever gonna tell a lie and hurt you.\n"
             self.msg(channel, msg)
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=self.msg))
 
         if msg.startswith("!info"):
             #If called, states owner and nickname
-            nickname = cfg.get('Bot Settings', 'Nickname')
             owner = cfg.get('Users', 'Owner')
-            msg = "Hello, %s. I am %s, a bot belonging to %s" % (user, nickname, owner)
-            self.logger.log("[%s] <%s> %s" % (channel, self.nickname, self.msg))
+            msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=self.msg))
             self.msg(channel, msg)
 
         if msg.startswith("!leave %s" % channel) and user == (owner or admins):
             #Leaves the channel(can be called outside said channel?)
-            self.logger.log("[%s] <%s> %s" % (channel, user, msg))
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
             self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
 
-        if msg == ("!join %s" % str) and user == (owner or admins):
+        if msg == "!join {ch}".format(ch=nch):
             #Joins designated channel.
-            channel = str
-            self.join(channel)
+            nch = channel
+            self.join(nch)
 
         if channel == self.nickname:
             msg = "I don't reply to whispers."
@@ -248,18 +256,13 @@ class ThorBot(irc.IRCClient):
             self.msg(user, msg)
             return
 
-        if msg.startswith(self.nickname + ": Talk!"):
-            msg = "%s: No, go duck yourself, foo'" % user
-            self.msg(channel, msg)
-            self.logger.log("[%s] <%s> %s" % (channel, self.nickname, self.msg))
-
-        if msg == "Thor{s} how many channels are there?".format(s=","":"" "):
+        if msg == self.nickname + "how many channels are there?":
             msg = "There are {nchan} channel(s) on this network.".format(nchan=self.luserChannels(channels=int))
             self.msg(channel, msg)
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
-        self.logger.log("[%s] * %s %s" % (channel, user, message))
+        self.logger.log("[{c}] * {u} {m}".format(c=channel, u=user, m=message))
 
     #IRC CALLBACKS
 
