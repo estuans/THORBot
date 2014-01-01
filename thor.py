@@ -11,7 +11,6 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 from modules.marthor import generate_sentence
 from modules.marthor import add_to_brain
-from modules import observer
 
 #SYS Imports
 import time
@@ -20,11 +19,10 @@ import re
 
 #OTHER Imports
 import ConfigParser
-import wolframalpha
 
 #Basic Inf
 versionName = "Baktu"
-versionNumber = "0.0402a"
+versionNumber = "0.0402b"
 
 #Config parser. Could be replaced in the future?
 
@@ -176,9 +174,15 @@ class ThorBot(irc.IRCClient):
             #Logs own messages, so long as self.msg() is called
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=self.msg))
 
-        if msg == "!reload":
-            msg = "Reloading..."
+        if msg == "!rejoin":
+            self.leave(channel, reason="Cycling")
+            time.sleep(1)
+            self.join(channel)
+            time.sleep(1)
+            msg = "Rejoined successfully"
             self.msg(channel, msg)
+
+        if msg == "!reload":
             observer.remodule()
 
         if msg == "!chatterbot":
