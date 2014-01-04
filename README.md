@@ -36,3 +36,4 @@ Dependencies
 Due to Thor's nature, he requires certain things to be present for him to function.
 
 Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords
+COBE - https://github.com/pteichman/cobe/wiki
