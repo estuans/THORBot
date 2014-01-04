@@ -23,13 +23,10 @@ logfile = cfg.get('Connection', 'Logfile')
 class ThorBotFactory(protocol.ClientFactory):
     protocol = ThorBot
 
-    def __init__(self, channel, filename, chain_length, chattiness, max_words):
+    def __init__(self, channel, filename):
         self.channel = channel
         self.filename = filename
         self.logfile = logfile
-        self.chain_length = chain_length
-        self.chattiness = chattiness
-        self.max_words = max_words
 
     def buildProtocol(self, addr):
         p = ThorBot()
@@ -46,9 +43,6 @@ class ThorBotFactory(protocol.ClientFactory):
         reactor.stop()
 
 if __name__ == '__main__':
-    chain_length = cfg.getint('Bot Settings', 'Chain Length')
-    chattiness = cfg.getfloat('Bot Settings', 'Chattiness')
-    max_words = cfg.getint('Bot Settings', 'Max Words')
     log.startLogging(sys.stdout)
-    reactor.connectTCP(server, port, ThorBotFactory(__channels, logfile, chain_length, chattiness, max_words))
+    reactor.connectTCP(server, port, ThorBotFactory(__channels, logfile))
     reactor.run()
