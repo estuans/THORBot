@@ -5,12 +5,9 @@ WolframAlpha integration will come later.
 '''
 
 #TWISTED Imports
-
 from twisted.words.protocols import irc
 
 #INTERNAL Imports
-from modules.marthor import generate_sentence
-from modules.marthor import add_to_brain
 from modules.logger import Bin
 
 #SYS Imports
@@ -20,6 +17,7 @@ import re
 
 #OTHER Imports
 import ConfigParser
+from cobe.brain import Brain
 
 #Basic Inf
 versionName = "Baktu"
@@ -39,6 +37,7 @@ cfg.read("hammer.ini")
 icl = irc.IRCClient
 i = irc.IRC
 chttb = True
+br = Brain("cobe.brain")
 
 
 class ThorBot(irc.IRCClient):
@@ -142,10 +141,15 @@ class ThorBot(irc.IRCClient):
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
 
+        if msg.__contains__(self.nickname) and chttb is True:
+            re.sub("\s^{n}".format(n=self.nickname), ' ', msg)
+            br.learn(msg)
+            ans = br.reply(msg)
+            re.sub("\s^{n}".format(n=self.nickname), ' ', ans)
+            self.msg(channel, ans.encode('utf8', 'ignore'))
+
         if msg:
             #Logs all messages
-            if len(msg) >= chain_length:
-                add_to_brain(msg, chain_length, write_to_file=True)
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
 
         if self.msg:
@@ -185,22 +189,6 @@ class ThorBot(irc.IRCClient):
                 msg = "Chatterbot replies already on."
                 self.msg(channel, msg)
 
-        if msg.__contains__(self.nickname) and chttb is True and user != ignored:
-            #Silly command that just produces a bunch of garbled text from brain.txt
-            #Might be expanded upon at a later time, but in all likelihood
-            #I'll try to replace it with a natural learning/machine learning command.
-            #msg = re.compile(self.nickname + "^\w+/$").sub(r'\[\[(?:[^\]|]*\|)?([^\]|]*)\]\]', msg)
-            msg = re.compile(self.nickname + "^(?:([A-Za-z])(?!.*\1))*$").sub(r'\[\[(?:[^\]|]*\|)?([^\]|]*)\]\]', msg)
-            sentence = generate_sentence(msg, chain_length, max_words)
-            if sentence:
-                ' '.join(sentence.split("[:,]* ?"))
-                self.msg(channel, sentence)
-                self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=self.msg))
-                print sentence
-            else:
-                print "Markov function called, but failed to generate sentence."
-                self.logger.log("Markov function was called, but failed to generate a sentence.")
-
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version: {vnam}(NUMBER {vnum})".format(vnam=versionName, vnum=versionNumber)
@@ -234,6 +222,9 @@ class ThorBot(irc.IRCClient):
             self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
+            mh.sync()
+            mh.close()
+            time.sleep(2)
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
 
