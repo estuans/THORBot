@@ -21,7 +21,7 @@ from cobe.brain import Brain
 
 #Basic Inf
 versionName = "Baktu"
-versionNumber = "0.0402b"
+versionNumber = "0.0404"
 
 #Config parser. Could be replaced in the future?
 
@@ -135,21 +135,29 @@ class ThorBot(irc.IRCClient):
         prefix = "%s: " % user
 
         #PRIVMSG Configuration parameters
-        chain_length = cfg.getint('Bot Settings', 'Chain Length')
-        max_words = cfg.getint('Bot Settings', 'Max Words')
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
 
-        if msg.__contains__(self.nickname) and chttb is True:
-            re.sub("\s^{n}".format(n=self.nickname), ' ', msg)
+        if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
+            msg.replace(self.nickname, '')
             br.learn(msg)
             ans = br.reply(msg)
-            re.sub("\s^{n}".format(n=self.nickname), ' ', ans)
+            ans.replace(self.nickname, '')
             self.msg(channel, ans.encode('utf8', 'ignore'))
 
         if msg:
             #Logs all messages
+            r1 = random.randint
+            r2 = random.randint
+
+            if r1 > r2:
+                print "CC is {r1} to {r2}".format()
+                ans = br.reply(msg)
+                self.msg(channel, ans)
+
+            br.learn(msg)
+
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
 
         if self.msg:
@@ -222,8 +230,6 @@ class ThorBot(irc.IRCClient):
             self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
-            mh.sync()
-            mh.close()
             time.sleep(2)
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
