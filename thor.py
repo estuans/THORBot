@@ -141,7 +141,7 @@ class ThorBot(irc.IRCClient):
 
         if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
             br.learn(msg)
-            ans = "{user}: ".format(user=user) + br.reply(msg.replace(self.nickname, ''))
+            ans = "{user}: ".format(user=user) + br.reply(msg)
             self.msg(channel, ans.encode('utf8', 'ignore'))
 
         if msg == "!help":
@@ -152,7 +152,7 @@ class ThorBot(irc.IRCClient):
                   " !rickroll"
             self.msg(channel, msg)
 
-        if msg:
+        if msg and user != self:
             #Logs all messages
             r1 = random.randint
             r2 = random.randint
