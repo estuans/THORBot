@@ -140,11 +140,17 @@ class ThorBot(irc.IRCClient):
         ignored = cfg.get('Users', 'Ignorelist')
 
         if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
-            msg.replace(self.nickname, '')
             br.learn(msg)
-            ans = br.reply(msg)
-            ans.replace(self.nickname, '')
+            ans = "{user}: ".format(user=user) + br.reply(msg.replace(self.nickname, ''))
             self.msg(channel, ans.encode('utf8', 'ignore'))
+
+        if msg == "!help":
+            self.describe(channel, "helps {u}".format(u=user))
+
+        if msg == "!tcmd":
+            msg = "Current commands: !rejoin, !leave, !info, !help, !disconnect, !chatterbot [on/off], !version," \
+                  " !rickroll"
+            self.msg(channel, msg)
 
         if msg:
             #Logs all messages
@@ -162,7 +168,7 @@ class ThorBot(irc.IRCClient):
 
         if self.msg:
             #Logs own messages, so long as self.msg() is called
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=self.msg))
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
 
         if msg == "!rejoin":
             self.leave(channel, reason="Cycling")
