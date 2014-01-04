@@ -11,6 +11,7 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 from modules.marthor import generate_sentence
 from modules.marthor import add_to_brain
+from modules.logger import Bin
 
 #SYS Imports
 import time
@@ -29,8 +30,6 @@ versionNumber = "0.0402b"
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
 
-logfile = cfg.get('Connection', 'Logfile')
-
 # WOLFRAMALPHA implementation
 
 #api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
@@ -40,24 +39,6 @@ logfile = cfg.get('Connection', 'Logfile')
 icl = irc.IRCClient
 i = irc.IRC
 chttb = True
-
-
-class Bin:
-    """
-    The Bin class contains basic logging functionality, although with how expanded
-    ThorBot is now, I'm not certain if it's necessary any longer.
-    """
-    def __init__(self, fl):
-        self.logfile = logfile
-        self.fl = fl
-
-    def log(self, message):
-        timestamp = time.strftime("[%H:%M]", time.localtime(time.time()))
-        self.fl.write('%s %s\n' % (timestamp, message))
-        self.fl.flush()
-
-    def close(self):
-        self.fl.close()
 
 
 class ThorBot(irc.IRCClient):
@@ -161,13 +142,10 @@ class ThorBot(irc.IRCClient):
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
 
-       #Thor's markov implementation wasn't playing ball, so I had
-       #To alter the vast majority of the code. Instead of replying randomly,
-       #He now only generates when prompted by the !markov command.
-       #It's not the best way, but it's the least intrusive.
-
         if msg:
             #Logs all messages
+            if len(msg) >= chain_length:
+                add_to_brain(msg, chain_length, write_to_file=True)
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
 
         if self.msg:
@@ -181,9 +159,6 @@ class ThorBot(irc.IRCClient):
             time.sleep(1)
             msg = "Rejoined successfully"
             self.msg(channel, msg)
-
-        if msg == "!reload":
-            observer.remodule()
 
         if msg == "!chatterbot":
             #Checks what the status of the chttb variable is and provides it in place of {st}
@@ -208,41 +183,23 @@ class ThorBot(irc.IRCClient):
                 self.msg(channel, msg)
             else:
                 msg = "Chatterbot replies already on."
-                self.channel(channel, msg)
+                self.msg(channel, msg)
 
         if msg.__contains__(self.nickname) and chttb is True and user != ignored:
             #Silly command that just produces a bunch of garbled text from brain.txt
             #Might be expanded upon at a later time, but in all likelihood
             #I'll try to replace it with a natural learning/machine learning command.
-            #msg = re.compile(self.nickname + "[:,]* ?").sub('', msg)
-            #msg = re.compile(self.nickname + "[a-z$1][A-Z$1]+[\s^$]$1").sub("", msg)
-            msg = re.compile(self.nickname + "[A-Z][a-z'\-]+[, ]([a-zA-Z'\-]+[;,]? ){15,25}[a-zA-Z'\-]+[.?!]").sub("",
-                                                                                                                   msg)
+            #msg = re.compile(self.nickname + "^\w+/$").sub(r'\[\[(?:[^\]|]*\|)?([^\]|]*)\]\]', msg)
+            msg = re.compile(self.nickname + "^(?:([A-Za-z])(?!.*\1))*$").sub(r'\[\[(?:[^\]|]*\|)?([^\]|]*)\]\]', msg)
             sentence = generate_sentence(msg, chain_length, max_words)
             if sentence:
-                #' '.join(sentence.split("[:,]* ?"))
-                ' '.join(sentence.split("[A-Z][a-z'\-]+[, ]([a-zA-Z'\-]+[;,]? ){15,25}[a-zA-Z'\-]+[.?!]"))
-                re.split(msg, sentence)
-                if sentence.endswith(""):
-                    self.msg(channel, prefix + sentence + ".")
-                    print "!!!DEBUG: Replaced WHITESPACE!!!"
-                elif sentence.endswith(","):
-                    sentence.replace(",", ".")
-                    self.msg(channel, prefix + sentence)
-                    print "!!!DEBUG: Replaced COMMA!!!"
-                elif sentence.endswith(",."):
-                    sentence.replace(",.", ".")
-                    self.msg(channel, prefix + sentence)
-                    print "!!!DEBUG: Replaced COMMA PERIOD!!!"
-                else:
-                    self.msg(channel, prefix + sentence)
+                ' '.join(sentence.split("[:,]* ?"))
+                self.msg(channel, sentence)
                 self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=self.msg))
                 print sentence
             else:
                 print "Markov function called, but failed to generate sentence."
                 self.logger.log("Markov function was called, but failed to generate a sentence.")
-
-        add_to_brain(msg, chain_length, write_to_file=True)
 
         if msg == "!version":
             #Passes version and version number to channel
@@ -272,25 +229,13 @@ class ThorBot(irc.IRCClient):
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
             self.msg(channel, msg)
 
-        if msg.startswith("!leave {c} {r}".format(c=channel, r=str)) and user == (owner or admins):
-            #Leaves the channel(can be called outside said channel?)
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
-            self.leave(channel, reason=reason)
+        if msg.startswith("!leave") and user == (owner or admins):
+            #Leaves the channel
+            self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
-
-        if channel == self.nickname:
-            if user != owner:
-                msg = "I don't reply to whispers."
-                self.logger.log("<{t}> {m}".format(t=self.nickname, m=self.msg))
-                self.msg(user, msg)
-            elif user == owner:
-                if msg == "!s {ch} ".format(ch=channel):
-                    self.say(channel, msg)
-                    self.logger.log("[{c}] <{t}> {m}".format(c=channel, t=self.nickname, m=self.msg))
-            return
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]

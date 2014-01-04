@@ -1,4 +1,5 @@
 from collections import defaultdict
+import re
 import random
 
 #MARKOV integration
@@ -22,11 +23,11 @@ def add_to_brain(msg, chain_length, write_to_file=False):
 def generate_sentence(msg, chain_length, max_words):
     buf = msg.split()[:chain_length]
     if len(msg.split()) > chain_length:
-        message = buf[:]
+        msg = buf[:chain_length]
     else:
-        message = []
+        msg = []
         for i in xrange(chain_length):
-            message.append(random.choice(markov[random.choice(markov.keys())]))
+            msg.append(random.choice(markov[random.choice(markov.keys())]))
         for i in xrange(max_words):
             try:
                 next_word = random.choice(markov[tuple(buf)])
@@ -34,7 +35,8 @@ def generate_sentence(msg, chain_length, max_words):
                 continue
             if next_word == STOP_WORD:
                 return
-            message.append(next_word)
+            msg.append(next_word)
             del buf[0]
             buf.append(next_word)
-        return ' '.join(message)
+            re.sub("\[(.*?)\] <(.*?)>", '', '')
+        return ' '.join(msg)
