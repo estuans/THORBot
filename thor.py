@@ -178,11 +178,18 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!help":
             self.describe(channel, "helps {u}".format(u=user))
+            msg = "What, that wasn't what you wanted, {user}?".format(user=user)
+            self.msg(channel, msg)
 
         if msg == "!tcmd":
-            msg = "Current commands: !rejoin, !leave, !info, !help, !disconnect, !chatterbot [on/off], !version," \
-                  " !rickroll, !randrep [on/off], !tcmd, !j, !dance"
+            msg = "Current commands(commands with * require special privileges): !rejoin, !leave*, !info, !help," \
+                  " !disconnect*, !chatterbot [on/off]," \
+                  " !rickroll, !tcmd, !j, !dance. | For more commands, use !etcmd"
             self.msg(channel, msg)
+
+        if msg == "!etcmd":
+            msg = "Extended commands(commands with * require special privileges): !v [user]*, !h [user]*, !o [user]*," \
+                  " !version, !randrep [on/off]"
 
         if msg == "!randrep on" and randrep is False:
             msg = "Random replies turned on."
