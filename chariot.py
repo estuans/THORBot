@@ -6,8 +6,8 @@ __author__ = 'Platinum'
 # All settings can be configured in hammer.ini
 
 from thor import ThorBot
+from modules import perm
 import sys
-import os
 from twisted.internet import protocol, reactor
 from twisted.python import log
 import ConfigParser
