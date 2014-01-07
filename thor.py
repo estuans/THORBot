@@ -9,42 +9,43 @@ from twisted.words.protocols import irc
 
 #INTERNAL Imports
 from modules.logger import Bin
+from modules import perm
 
 #SYS Imports
 import time
 import random
-import re
 
 #OTHER Imports
 import ConfigParser
+import urllib2
+import json
 from cobe.brain import Brain
 
 #Basic Inf
-versionName = "Baktu"
-versionNumber = "0.0404"
+versionName = "Citrus"
+versionNumber = "C02.009"
 
 #Config parser. Could be replaced in the future?
 
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
 
-# WOLFRAMALPHA implementation
-
-#api_id = wolframalpha.Client('YT6T34-E7L5L5YWWK')
-
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
 icl = irc.IRCClient
 i = irc.IRC
+p = perm.Permissions
 chttb = True
+randrep = False
+
 br = Brain("cobe.brain")
+Brain.tokenizer = "Cobe"
 
 
 class ThorBot(irc.IRCClient):
     """
-    This class will log events and, eventually, pull answers from the internet on queries
-    At the present time, there's a failure to respond correctly to queries made
-    but hopefully, once resolve it will be able to respond with a Markov chain as well.
+    Primary IRC class. Controls just about everything that isn't a module. Logging is handled by logger.py.
+    Below you'll find a bunch of options that are handled by hammer.ini.
     """
 
     def __init__(self):
@@ -60,6 +61,7 @@ class ThorBot(irc.IRCClient):
         self.owner = owner
         self.admins = admins
         self.ignored = ignored
+        self.lineRate = 1
 
     def connectionMade(self):
         #First we connect
@@ -114,6 +116,7 @@ class ThorBot(irc.IRCClient):
 
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
+        self.join(channel)
 
     def userKicked(self, kickee, channel, kicker, message):
         self.logger.log("{us} was kicked from {ch} by {ki}".format(us=kickee, ch=channel, ki=kicker))
@@ -130,9 +133,7 @@ class ThorBot(irc.IRCClient):
 
         #Globals
         global chttb
-
-        #Used by the Markov command
-        prefix = "%s: " % user
+        global randrep
 
         #PRIVMSG Configuration parameters
         owner = cfg.get('Users', 'Owner')
@@ -140,27 +141,81 @@ class ThorBot(irc.IRCClient):
         ignored = cfg.get('Users', 'Ignorelist')
 
         if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
-            br.learn(msg)
-            ans = "{user}: ".format(user=user) + br.reply(msg)
-            self.msg(channel, ans.encode('utf8', 'ignore'))
+            res = "{user}: ".format(user=user) + br.reply(msg)
+            self.msg(channel, res.encode('utf-8', 'ignore'))
+
+        if msg == "!dance":
+            msg = "<(o.o<)\r\n" \
+                  "(>o.o)>\r\n" \
+                  "^(o.o)^\r\n" \
+                  "v(o.o)v\r\n" \
+                  "<(o.o)>\r\n"
+            self.msg(channel, msg)
+
+        if msg == "!ctab":
+            p.createtable()
+            print "Table created!"
+
+        if msg == "!dchck":
+            p.datacheck()
+            msg = "Running dataCheck. . ."
+            self.msg(channel, msg)
+            if p.datacheck() == 1:
+                msg = "Tables existed. No further action required."
+                self.msg(channel, msg)
+            if p.datacheck() == 0:
+                msg = "Data insufficient. Tables invalid. Creating tables. . ."
+                self.msg(channel, msg)
+
+        if msg == "!v {user}".format(user=user):
+            p.permvoice(user, channel)
+            msg = "Voiced {user}".format(user)
+            self.msg(channel, msg)
+
+        if msg == "!h {user}".format(user=user):
+            p.permhop(user, channel)
+            msg = "Half-hopped {user}".format(user)
+            self.msg(channel, msg)
+
+        if msg == "!o {user}".format(user=user):
+            p.permop(user, channel)
+            msg = "Opped {user}".format(user)
+            self.msg(channel, msg)
 
         if msg == "!help":
             self.describe(channel, "helps {u}".format(u=user))
 
         if msg == "!tcmd":
             msg = "Current commands: !rejoin, !leave, !info, !help, !disconnect, !chatterbot [on/off], !version," \
-                  " !rickroll"
+                  " !rickroll, !randrep [on/off], !tcmd, !j, !dance"
             self.msg(channel, msg)
+
+        if msg == "!randrep on" and randrep is False:
+            msg = "Random replies turned on."
+            self.msg(channel, msg)
+            randrep = True
+
+        if msg == "!randrep off" and randrep is True:
+            msg = "Random replies turned off."
+            self.msg(channel, msg)
+            randrep = False
+
+        if msg == "!randrep":
+            if randrep is True:
+                msg = "Random replies currently on."
+                self.msg(channel, msg)
+            if randrep is False:
+                msg = "Random replies currently off."
+                self.msg(channel, msg)
 
         if msg and user != self:
             #Logs all messages
-            r1 = random.randint
-            r2 = random.randint
+            rc = random.random()
 
-            if r1 > r2:
-                print "CC is {r1} to {r2}".format()
+            if rc > 0.265 and randrep is True:
                 ans = br.reply(msg)
-                self.msg(channel, ans)
+                time.sleep(1)
+                self.msg(channel, ans.encode('utf-8', 'ignore'))
 
             br.learn(msg)
 
@@ -169,6 +224,16 @@ class ThorBot(irc.IRCClient):
         if self.msg:
             #Logs own messages, so long as self.msg() is called
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
+
+        if msg.startswith("!j"):
+            rq = urllib2.Request("http://api.icndb.com/jokes/random?")
+            joke = urllib2.urlopen(rq).read()
+            data = json.loads(joke)
+            msg = data['value']['joke']
+            self.msg(channel, msg.encode('utf-8', 'ignore'))
+
+        if msg == "!buttdom":
+            random.choice()
 
         if msg == "!rejoin":
             self.leave(channel, reason="Cycling")
@@ -203,19 +268,13 @@ class ThorBot(irc.IRCClient):
                 msg = "Chatterbot replies already on."
                 self.msg(channel, msg)
 
+        if msg == "!join {channel}":
+            icl.irc_JOIN(self, "", channel)
+
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version: {vnam}(NUMBER {vnum})".format(vnam=versionName, vnum=versionNumber)
             self.msg(channel, msg)
-
-        if msg == "!inv {user} {chan}":
-            #Broken. Meant to invite person.
-            user = user
-            chan = channel
-            self.invite(user, chan)
-            msg = "Inviting {user} into {chan}".format(user=user, chan=channel)
-            self.msg(channel, msg)
-            self.logger.log("Invited {user} into {chan}".format(user=user, chan=channel))
 
         if msg == "!rickroll":
             #... It was a silly idea, okay?
