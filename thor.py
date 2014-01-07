@@ -52,15 +52,9 @@ class ThorBot(irc.IRCClient):
         nickname = cfg.get('Bot Settings', 'Nickname')
         realname = cfg.get('Bot Settings', 'Realname')
         password = cfg.get('Bot Settings', 'NickPass')
-        owner = cfg.get('Users', 'Owner')
-        admins = cfg.get('Users', 'Admins')
-        ignored = cfg.get('Users', 'Ignorelist')
         self.nickname = nickname
         self.realname = realname
         self.password = password
-        self.owner = owner
-        self.admins = admins
-        self.ignored = ignored
         self.lineRate = 1
 
     def connectionMade(self):
@@ -174,7 +168,7 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!h {user}".format(user=user):
             p.permhop(user, channel)
-            msg = "Half-hopped {user}".format(user)
+            msg = "Half-opped {user}".format(user)
             self.msg(channel, msg)
 
         if msg == "!o {user}".format(user=user):
@@ -225,17 +219,16 @@ class ThorBot(irc.IRCClient):
             #Logs own messages, so long as self.msg() is called
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
 
-        if msg.startswith("!j"):
+        if msg == "!j":
+            #Fetches an ol' fashioned Chuck Norris joke and prints it
             rq = urllib2.Request("http://api.icndb.com/jokes/random?")
             joke = urllib2.urlopen(rq).read()
             data = json.loads(joke)
             msg = data['value']['joke']
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
-        if msg == "!buttdom":
-            random.choice()
-
         if msg == "!rejoin":
+            #Rejoins channel
             self.leave(channel, reason="Cycling")
             time.sleep(1)
             self.join(channel)
@@ -268,12 +261,12 @@ class ThorBot(irc.IRCClient):
                 msg = "Chatterbot replies already on."
                 self.msg(channel, msg)
 
-        if msg == "!join {channel}":
-            icl.irc_JOIN(self, "", channel)
+        if msg == "!join {str}".format(str=channel):
+            self.join(channel)
 
         if msg == "!version":
             #Passes version and version number to channel
-            msg = "Version: {vnam}(NUMBER {vnum})".format(vnam=versionName, vnum=versionNumber)
+            msg = "Version | {vnam} | {vnum} |".format(vnam=versionName, vnum=versionNumber)
             self.msg(channel, msg)
 
         if msg == "!rickroll":
@@ -292,9 +285,14 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!leave") and user == (owner or admins):
             #Leaves the channel
+            msg = "Okay, {user}. Leaving {channel}!".format(user=user, channel=channel)
+            self.msg(channel, msg)
+            time.sleep(2)
             self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
+            msg = "Severing connection . . ."
+            self.msg(channel, msg)
             time.sleep(2)
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
