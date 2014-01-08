@@ -10,14 +10,17 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 from modules.logger import Bin
 from modules import perm
+from modules import games
 
 #SYS Imports
 import time
 import random
+import re
 
 #OTHER Imports
 import ConfigParser
 import urllib2
+import urllib
 import json
 from cobe.brain import Brain
 
@@ -60,7 +63,6 @@ class ThorBot(irc.IRCClient):
     def connectionMade(self):
         #First we connect
         irc.IRCClient.connectionMade(self)
-        self.logger = Bin(open(self.factory.filename, "a"))
         self.logger.log("[CONNECTED @ %s]" % time.asctime(time.localtime(time.time())))
 
     def connectionLost(self, reason):
@@ -111,6 +113,8 @@ class ThorBot(irc.IRCClient):
     def kickedFrom(self, channel, kicker, message):
         self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
         self.join(channel)
+        msg = "How fucking dare you, {ki}".format(ki=kicker)
+        self.msg(channel, msg)
 
     def userKicked(self, kickee, channel, kicker, message):
         self.logger.log("{us} was kicked from {ch} by {ki}".format(us=kickee, ch=channel, ki=kicker))
@@ -121,9 +125,16 @@ class ThorBot(irc.IRCClient):
         if command == "INVITE":
             self.join(params[1])
 
+    def yourHost(self, info):
+        info = "Valhalla"
+        return
+
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
         self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
+
+        #Regex Things
+        NumCheck = re.compile('[0-9]')
 
         #Globals
         global chttb
@@ -134,9 +145,26 @@ class ThorBot(irc.IRCClient):
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
 
+        if msg == "!qdb {num}".format(num=re.match('[0-9]', msg)):
+            if re.match('[0-9]', msg) is True:
+                qn = re.match('[0-9]', msg)
+                url = "http://www.arloria.net/qdb/"
+                params = urllib.urlencode(qn)
+                url2 = (url + params)
+                msg = url2
+                self.msg(channel, msg)
+            else:
+                msg = "No QDB # supplied."
+                self.msg(channel, msg)
+
         if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
-            res = "{user}: ".format(user=user) + br.reply(msg)
-            self.msg(channel, res.encode('utf-8', 'ignore'))
+            res = br.reply(msg).encode('UTF-8')
+            if TypeError:
+                print "TypeError: ", TypeError
+            if TypeError == 'NoneType':
+                self.msg(channel, msg).encode('UTF-8')
+
+            self.msg(channel, "{user}: ".format(user=user) + res.encode('UTF-8'))
 
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
@@ -148,6 +176,8 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!ctab":
             p.createtable()
+            msg = "SQL - SUCCESS"
+            self.msg(channel, msg)
             print "Table created!"
 
         if msg == "!dchck":
@@ -161,19 +191,22 @@ class ThorBot(irc.IRCClient):
                 msg = "Data insufficient. Tables invalid. Creating tables. . ."
                 self.msg(channel, msg)
 
+        if msg == "!chv {user}".format(user=user):
+            p.chckvoice(user)
+
         if msg == "!v {user}".format(user=user):
             p.permvoice(user, channel)
-            msg = "Voiced {user}".format(user)
+            msg = "Voiced {user}".format(user=user)
             self.msg(channel, msg)
 
         if msg == "!h {user}".format(user=user):
             p.permhop(user, channel)
-            msg = "Half-opped {user}".format(user)
+            msg = "Half-opped {user}".format(user=user)
             self.msg(channel, msg)
 
         if msg == "!o {user}".format(user=user):
             p.permop(user, channel)
-            msg = "Opped {user}".format(user)
+            msg = "Opped {user}".format(user=user)
             self.msg(channel, msg)
 
         if msg == "!help":
@@ -182,14 +215,15 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!tcmd":
-            msg = "Current commands(commands with * require special privileges): !rejoin, !leave*, !info, !help," \
-                  " !disconnect*, !chatterbot [on/off]," \
-                  " !rickroll, !tcmd, !j, !dance. | For more commands, use !etcmd"
+            msg = "| Commands with * require special privileges | !rejoin | !leave* | !info | !help |" \
+                  " !disconnect* | !chatterbot [on/off] |" \
+                  " !rickroll | !tcmd | !j | !dance | For more commands, use !etcmd"
             self.msg(channel, msg)
 
         if msg == "!etcmd":
-            msg = "Extended commands(commands with * require special privileges): !v [user]*, !h [user]*, !o [user]*," \
-                  " !version, !randrep [on/off]"
+            msg = "| Commands with * require special privileges | !v [user]* | !h [user]* | !o [user]* |" \
+                  " !version | !randrep [on/off]"
+            self.msg(channel, msg)
 
         if msg == "!randrep on" and randrep is False:
             msg = "Random replies turned on."
@@ -213,10 +247,12 @@ class ThorBot(irc.IRCClient):
             #Logs all messages
             rc = random.random()
 
-            if rc > 0.265 and randrep is True:
-                ans = br.reply(msg)
+            if rc > 0.5 and randrep is True:
+                ans = br.reply(msg.encode('UTF-8', 'ignore'))
                 time.sleep(1)
-                self.msg(channel, ans.encode('utf-8', 'ignore'))
+                self.msg(channel, ans.encode('UTF-8', 'ignore'))
+                if TypeError:
+                    print "Error: TypeError(%s)" % TypeError
 
             br.learn(msg)
 
@@ -268,8 +304,12 @@ class ThorBot(irc.IRCClient):
                 msg = "Chatterbot replies already on."
                 self.msg(channel, msg)
 
-        if msg == "!join {str}".format(str=channel):
-            self.join(channel)
+        if msg.startswith("!join "):
+            msg.split()
+            msg.replace('!join ', '')
+            chd = channel
+            for channel in chd:
+                self.join(chd)
 
         if msg == "!version":
             #Passes version and version number to channel
@@ -298,11 +338,12 @@ class ThorBot(irc.IRCClient):
             self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
-            msg = "Severing connection . . ."
+            msg = "Severing connection..."
             self.msg(channel, msg)
             time.sleep(2)
             self.quit(message="Disconnected per request")
             self.logger.log("Disconnected per request of %s" % user)
+            print "Disconnected."
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
