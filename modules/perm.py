@@ -27,6 +27,9 @@ class Permissions():
 
         c.execute('''CREATE TABLE permissions(user, level, channel)''')
 
+        conn.commit()
+        conn.close()
+
     @staticmethod
     def datacheck():
         """
@@ -52,10 +55,12 @@ class Permissions():
         Applies 'operator' condition to user. (Level 3)
         """
 
-        sqin = '''INSERT INTO permissions VALUES(user=? AND level=? AND channel=?)'''
+        sqin = '''INSERT INTO permissions(user,level,channel) VALUES (?,?,?)'''
         params = (user, 3, channel)
         c.execute(sqin, params)
         conn.commit()
+
+        conn.close()
 
     @staticmethod
     def permhop(user, channel):
@@ -63,10 +68,12 @@ class Permissions():
         Applies 'half-operator' condition to user. (Level 2)
         """
 
-        sqin = '''INSERT INTO permissions VALUES(user=? AND level=? AND channel=?)'''
+        sqin = '''INSERT INTO permissions(user,level,channel) VALUES (?,?,?)'''
         params = (user, 2, channel)
         c.execute(sqin, params)
         conn.commit()
+
+        conn.close()
 
     @staticmethod
     def permvoice(user, channel):
@@ -74,7 +81,17 @@ class Permissions():
         Applied 'voiced' condition to user. (Level 1)
         """
 
-        sqin = '''INSERT INTO permissions VALUES(user=? AND level=? AND channel=?)'''
+        sqin = '''INSERT INTO permissions(user,level,channel) VALUES (?,?,?)'''
         params = (user, 1, channel)
         c.execute(sqin, params)
         conn.commit()
+
+        conn.close()
+
+    @staticmethod
+    def chckvoice(self):
+        """
+        Checks if user is voiced
+        """
+
+        sqin = '''SELECT FROM permissions(level,channel)'''

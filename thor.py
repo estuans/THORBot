@@ -63,6 +63,7 @@ class ThorBot(irc.IRCClient):
     def connectionMade(self):
         #First we connect
         irc.IRCClient.connectionMade(self)
+        self.logger = Bin(open(self.factory.filename, "a"))
         self.logger.log("[CONNECTED @ %s]" % time.asctime(time.localtime(time.time())))
 
     def connectionLost(self, reason):
@@ -145,9 +146,10 @@ class ThorBot(irc.IRCClient):
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
 
-        if msg == "!qdb {num}".format(num=re.match('[0-9]', msg)):
+        if msg == "!qdb":
             if re.match('[0-9]', msg) is True:
-                qn = re.match('[0-9]', msg)
+                re.split(' ', msg)
+                qn = re.compile('[0-9]', msg)
                 url = "http://www.arloria.net/qdb/"
                 params = urllib.urlencode(qn)
                 url2 = (url + params)
@@ -162,9 +164,10 @@ class ThorBot(irc.IRCClient):
             if TypeError:
                 print "TypeError: ", TypeError
             if TypeError == 'NoneType':
-                self.msg(channel, msg).encode('UTF-8')
-
+                return
             self.msg(channel, "{user}: ".format(user=user) + res.encode('UTF-8'))
+            if UnicodeDecodeError:
+                return
 
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
