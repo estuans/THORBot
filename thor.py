@@ -39,7 +39,7 @@ versionNumber = "{g}".format(g=gobblenumber)
 
 #Config parser. Could be replaced in the future?
 
-cfg = ConfigParser.RawConfigParser()
+cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("hammer.ini")
 
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
