@@ -1,19 +1,17 @@
 THORBot
 =======
 
-An experimental IRC bot running Python
-with Twisted.Words and various other
-small libraries tacked on.
+An IRC bot under development.
 
-Currently connects and does random debugging stuff.
+Currently supports a variety of commands, with more modules on the drawing board.
+
 
 =======
 
 Connecting
 =======
 
-In order to connect to a server, use the hammer.ini provided to set the appropriate server, port, and nickname.
-You can alter the nickname of ThorBot easily through the ini, as well as certain messages provided.
+Before you can start using THORBot, you need to configure a few settings in the configuration file provided with the bot. You'll find these settings in the "hammer.ini" file, and most revisions should include a clean file for you to use. Everything from the nickname, nickserver pass, to the channels it connects to can be configured from there.
 
 =======
 
@@ -26,9 +24,11 @@ commands that will print a message to the console for debugging, but mostly it j
 Todo
 =======
 
-- Need to create a database function that stores permissions, channels, etc.
+- Improve the way THORBot handles messages being sent to valhalla.brain.
+- Add additional support for Google API.
+- Add support for WolframAlpha API.
+- Work on the permissions database and how they're handled.
 
-- Fix !invite and !join
 
 Dependencies
 =======
@@ -37,3 +37,9 @@ Due to Thor's nature, he requires certain things to be present for him to functi
 
 Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords
 COBE - https://github.com/pteichman/cobe/wiki
+
+
+Commands
+=======
+
+For information on the available, and usage thereof, commands, please check the THORBot wiki on GitHub.
