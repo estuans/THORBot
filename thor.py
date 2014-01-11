@@ -1,4 +1,5 @@
 #!/usr/bin/python
+
 '''
 THOR connects to an IRC network, joins a channel, and keeps a log of everything that goes on.
 WolframAlpha integration will come later.
@@ -10,12 +11,15 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 from modules.logger import Bin
 from modules import perm
-from modules import games
 
 #SYS Imports
 import time
 import random
 import re
+
+#ERROR handling
+import sqlite3
+import exceptions
 
 #OTHER Imports
 import ConfigParser
@@ -35,14 +39,11 @@ cfg.read("hammer.ini")
 
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
-icl = irc.IRCClient
-i = irc.IRC
 p = perm.Permissions
 chttb = True
 randrep = False
 
-br = Brain("cobe.brain")
-Brain.tokenizer = "Cobe"
+br = Brain("databases/valhalla.brain")
 
 
 class ThorBot(irc.IRCClient):
@@ -74,8 +75,6 @@ class ThorBot(irc.IRCClient):
     def irc_ERR_ERRONEUSNICKNAME(self, prefix, params):
         print "irc_ERR_ERRONEUSNICKNAME called"
         self.logger.log("[%s]Erroneus Nickname" % time.asctime(time.localtime(time.time())))
-        if not self._registered:
-            self.setNick(self.fbnick)
 
     def irc_ERR_PASSWDMISMATCH(self, prefix, params):
         print "!!!INCORRECT PASSWORD!!!\n Check hammer.ini for the NICKPASS parameter"
@@ -126,16 +125,9 @@ class ThorBot(irc.IRCClient):
         if command == "INVITE":
             self.join(params[1])
 
-    def yourHost(self, info):
-        info = "Valhalla"
-        return
-
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
         self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
-
-        #Regex Things
-        NumCheck = re.compile('[0-9]')
 
         #Globals
         global chttb
@@ -145,6 +137,75 @@ class ThorBot(irc.IRCClient):
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignorelist')
+
+        #COBE Integration starts here!
+        #I had to study the brain of the COBE bot example, but
+        #managed to conjure up a way to better format messages.
+
+        if msg == "!ll":
+            f = file("log.txt")
+
+            log = f.read()
+
+            msg = re.sub('<\S>\s', '', log)
+            text = log.decode('utf-8')
+
+            br.learn(text)
+
+
+        if msg:
+
+            #Format
+            text = msg.decode('utf-8')
+            msg = re.sub('<\S>\s', '', msg)
+
+            #Learn text
+            br.learn(text)
+            print "STRING LEARNED"
+
+        if self.nickname in msg and chttb is True:
+
+            #Strip pasted nicknames and timecodes from message, as well as own nickname
+            msg = re.sub('<\S>\s', '', msg)
+            #msg = re.sub('([\S])\s', '', msg)
+
+            #Format
+            text = msg.decode('utf-8')
+
+            #Learn text
+            br.learn(text)
+
+            #Create reply
+            reply = br.reply(text).encode('utf-8')
+
+            self.msg(channel, "%s: " % user + reply.replace(self.nickname + ' ', ''))
+
+        if msg == "!chatterbot":
+            #Checks what the status of the chttb variable is and provides it in place of {st}
+            msg = "Chatterbot variable status: {st}".format(st=chttb)
+            self.msg(channel, msg)
+
+        if msg == "!chatterbot off":
+            #Checks if chttb is true, and if it is, changes it to False.
+            if chttb is True:
+                chttb = False
+                msg = "Chatterbot replies turned off."
+                self.msg(channel, msg)
+            else:
+                msg = "Chatterbot replies already off."
+                self.msg(channel, msg)
+
+        if msg == "!chatterbot on":
+            #Inverse of the above
+            if chttb is False:
+                chttb = True
+                msg = "Chatterbot replies turned on."
+                self.msg(channel, msg)
+            else:
+                msg = "Chatterbot replies already on."
+                self.msg(channel, msg)
+
+        #URL Fetchers & Integrated Utilities
 
         if msg == "!qdb":
             if re.match('[0-9]', msg) is True:
@@ -159,23 +220,21 @@ class ThorBot(irc.IRCClient):
                 msg = "No QDB # supplied."
                 self.msg(channel, msg)
 
-        if msg.__contains__(self.nickname) and chttb is True and user != ignored and user != self:
-            res = br.reply(msg).encode('UTF-8')
-            if TypeError:
-                print "TypeError: ", TypeError
-            if TypeError == 'NoneType':
-                return
-            self.msg(channel, "{user}: ".format(user=user) + res.encode('UTF-8'))
-            if UnicodeDecodeError:
-                return
+        if msg == "!j":
+            #Fetches an ol' fashioned Chuck Norris joke and prints it
+            rq = urllib2.Request("http://api.icndb.com/jokes/random?")
+            joke = urllib2.urlopen(rq).read()
+            data = json.loads(joke)
+            msg = data['value']['joke']
+            self.msg(channel, msg.encode('utf-8', 'ignore'))
 
-        if msg == "!dance":
-            msg = "<(o.o<)\r\n" \
-                  "(>o.o)>\r\n" \
-                  "^(o.o)^\r\n" \
-                  "v(o.o)v\r\n" \
-                  "<(o.o)>\r\n"
-            self.msg(channel, msg)
+        #Logging Things
+
+        if self.msg:
+            #Logs own messages, so long as self.msg() is called
+            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
+
+        #Database things
 
         if msg == "!ctab":
             p.createtable()
@@ -212,6 +271,16 @@ class ThorBot(irc.IRCClient):
             msg = "Opped {user}".format(user=user)
             self.msg(channel, msg)
 
+        #Misc
+
+        if msg == "!dance":
+            msg = "<(o.o<)\r\n" \
+                  "(>o.o)>\r\n" \
+                  "^(o.o)^\r\n" \
+                  "v(o.o)v\r\n" \
+                  "<(o.o)>\r\n"
+            self.msg(channel, msg)
+
         if msg == "!help":
             self.describe(channel, "helps {u}".format(u=user))
             msg = "What, that wasn't what you wanted, {user}?".format(user=user)
@@ -246,33 +315,6 @@ class ThorBot(irc.IRCClient):
                 msg = "Random replies currently off."
                 self.msg(channel, msg)
 
-        if msg and user != self:
-            #Logs all messages
-            rc = random.random()
-
-            if rc > 0.5 and randrep is True:
-                ans = br.reply(msg.encode('UTF-8', 'ignore'))
-                time.sleep(1)
-                self.msg(channel, ans.encode('UTF-8', 'ignore'))
-                if TypeError:
-                    print "Error: TypeError(%s)" % TypeError
-
-            br.learn(msg)
-
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
-
-        if self.msg:
-            #Logs own messages, so long as self.msg() is called
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
-
-        if msg == "!j":
-            #Fetches an ol' fashioned Chuck Norris joke and prints it
-            rq = urllib2.Request("http://api.icndb.com/jokes/random?")
-            joke = urllib2.urlopen(rq).read()
-            data = json.loads(joke)
-            msg = data['value']['joke']
-            self.msg(channel, msg.encode('utf-8', 'ignore'))
-
         if msg == "!rejoin":
             #Rejoins channel
             self.leave(channel, reason="Cycling")
@@ -282,34 +324,10 @@ class ThorBot(irc.IRCClient):
             msg = "Rejoined successfully"
             self.msg(channel, msg)
 
-        if msg == "!chatterbot":
-            #Checks what the status of the chttb variable is and provides it in place of {st}
-            msg = "Chatterbot variable status: {st}".format(st=chttb)
-            self.msg(channel, msg)
-
-        if msg == "!chatterbot off":
-            #Checks if chttb is true, and if it is, changes it to False.
-            if chttb is True:
-                chttb = False
-                msg = "Chatterbot replies turned off."
-                self.msg(channel, msg)
-            else:
-                msg = "Chatterbot replies already off."
-                self.msg(channel, msg)
-
-        if msg == "!chatterbot on":
-            #Inverse of the above
-            if chttb is False:
-                chttb = True
-                msg = "Chatterbot replies turned on."
-                self.msg(channel, msg)
-            else:
-                msg = "Chatterbot replies already on."
-                self.msg(channel, msg)
-
         if msg.startswith("!join "):
             msg.split()
             msg.replace('!join ', '')
+            ' '.join(msg)
             chd = channel
             for channel in chd:
                 self.join(chd)
