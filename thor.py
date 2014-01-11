@@ -17,20 +17,25 @@ import time
 import random
 import re
 
-#ERROR handling
-import sqlite3
-import exceptions
-
 #OTHER Imports
 import ConfigParser
 import urllib2
 import urllib
 import json
+from operator import itemgetter
 from cobe.brain import Brain
 
-#Basic Inf
-versionName = "Citrus"
-versionNumber = "C02.009"
+#Version Information
+
+#None of the following lines down to the config parser are of any consequence
+#to the code itself, and were merely added to poke fun at the sometimes
+#arbitrary nature of version numbers in software today.
+
+alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 1))
+
+versionName = "DreadFish"
+versionNumber = "{g}".format(g=gobblenumber)
 
 #Config parser. Could be replaced in the future?
 
@@ -44,6 +49,8 @@ chttb = True
 randrep = False
 
 br = Brain("databases/valhalla.brain")
+
+illegal_channels = ['#welcome', '#jacoders', '#ircrpg', '#tiramisu', '#tribes']
 
 
 class ThorBot(irc.IRCClient):
@@ -123,7 +130,11 @@ class ThorBot(irc.IRCClient):
 
     def irc_unknown(self, prefix, command, params):
         if command == "INVITE":
-            self.join(params[1])
+            if params[1] in illegal_channels[:]:
+                print "INVITED BUT NOT ALLOWED TO JOIN"
+
+            else:
+                self.join(params[1])
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
@@ -136,22 +147,10 @@ class ThorBot(irc.IRCClient):
         #PRIVMSG Configuration parameters
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
-        ignored = cfg.get('Users', 'Ignorelist')
 
         #COBE Integration starts here!
         #I had to study the brain of the COBE bot example, but
         #managed to conjure up a way to better format messages.
-
-        if msg == "!ll":
-            f = file("log.txt")
-
-            log = f.read()
-
-            msg = re.sub('<\S>\s', '', log)
-            text = log.decode('utf-8')
-
-            br.learn(text)
-
 
         if msg:
 
@@ -161,13 +160,11 @@ class ThorBot(irc.IRCClient):
 
             #Learn text
             br.learn(text)
-            print "STRING LEARNED"
 
         if self.nickname in msg and chttb is True:
 
             #Strip pasted nicknames and timecodes from message, as well as own nickname
             msg = re.sub('<\S>\s', '', msg)
-            #msg = re.sub('([\S])\s', '', msg)
 
             #Format
             text = msg.decode('utf-8')
@@ -182,11 +179,13 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!chatterbot":
             #Checks what the status of the chttb variable is and provides it in place of {st}
+
             msg = "Chatterbot variable status: {st}".format(st=chttb)
             self.msg(channel, msg)
 
         if msg == "!chatterbot off":
             #Checks if chttb is true, and if it is, changes it to False.
+
             if chttb is True:
                 chttb = False
                 msg = "Chatterbot replies turned off."
@@ -197,6 +196,7 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!chatterbot on":
             #Inverse of the above
+
             if chttb is False:
                 chttb = True
                 msg = "Chatterbot replies turned on."
@@ -222,6 +222,7 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!j":
             #Fetches an ol' fashioned Chuck Norris joke and prints it
+
             rq = urllib2.Request("http://api.icndb.com/jokes/random?")
             joke = urllib2.urlopen(rq).read()
             data = json.loads(joke)
@@ -232,6 +233,7 @@ class ThorBot(irc.IRCClient):
 
         if self.msg:
             #Logs own messages, so long as self.msg() is called
+
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
 
         #Database things
@@ -273,6 +275,58 @@ class ThorBot(irc.IRCClient):
 
         #Misc
 
+        if msg.startswith("!inv"):
+
+            #Invites target user into present channel.
+            #May be expanded upon in the future.
+
+            invchan = channel
+            wlist = msg.split(' ')
+            targ = itemgetter(1)(wlist)
+
+            print wlist, targ, invchan
+
+            self.sendLine('INVITE {t} {c}'.format(c=invchan, t=targ))
+
+            pending = "Inviting {t} into {c}".format(t=targ, c=channel)
+
+            self.msg(channel, pending)
+
+        if msg.startswith("!join"):
+
+            #Joins designated channel.
+
+            wlist = msg.split(' ')
+            targ = itemgetter(1)(wlist)
+
+            if targ in illegal_channels[:]:
+                #If target is found in illegal channels list,
+                #cancels operation and apologises in a polite manner.
+
+                msg = "Sorry, {u}, I'm not allowed to join {t}".format(u=user, t=targ)
+                self.msg(channel, msg)
+
+            else:
+                #Checks target against illegal channels list.
+                #If not present, will join the channel.
+
+                self.sendLine('join {c}'.format(c=targ))
+                msg = "Joining {c}".format(c=targ)
+
+                self.msg(channel, msg)
+
+        if msg.startswith("!leave"):
+            #Sends a part message to the server,
+            #leaving the designated channel(even if not sent from aforementioned channel)
+
+            wlist = msg.split(' ')
+            targ = itemgetter(1)(wlist)
+
+            msg = "Leaving {c}".format(c=targ)
+            self.msg(channel, msg)
+
+            self.sendLine('part {c}'.format(c=targ))
+
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
                   "(>o.o)>\r\n" \
@@ -282,19 +336,8 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!help":
-            self.describe(channel, "helps {u}".format(u=user))
-            msg = "What, that wasn't what you wanted, {user}?".format(user=user)
-            self.msg(channel, msg)
-
-        if msg == "!tcmd":
-            msg = "| Commands with * require special privileges | !rejoin | !leave* | !info | !help |" \
-                  " !disconnect* | !chatterbot [on/off] |" \
-                  " !rickroll | !tcmd | !j | !dance | For more commands, use !etcmd"
-            self.msg(channel, msg)
-
-        if msg == "!etcmd":
-            msg = "| Commands with * require special privileges | !v [user]* | !h [user]* | !o [user]* |" \
-                  " !version | !randrep [on/off]"
+            msg = "Commands: !dance, !join [channel], !leave [channel], !disconnect, !rickroll, !j, " \
+                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user]"
             self.msg(channel, msg)
 
         if msg == "!randrep on" and randrep is False:
@@ -324,14 +367,6 @@ class ThorBot(irc.IRCClient):
             msg = "Rejoined successfully"
             self.msg(channel, msg)
 
-        if msg.startswith("!join "):
-            msg.split()
-            msg.replace('!join ', '')
-            ' '.join(msg)
-            chd = channel
-            for channel in chd:
-                self.join(chd)
-
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version | {vnam} | {vnum} |".format(vnam=versionName, vnum=versionNumber)
@@ -350,13 +385,6 @@ class ThorBot(irc.IRCClient):
             msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
             self.msg(channel, msg)
-
-        if msg.startswith("!leave") and user == (owner or admins):
-            #Leaves the channel
-            msg = "Okay, {user}. Leaving {channel}!".format(user=user, channel=channel)
-            self.msg(channel, msg)
-            time.sleep(2)
-            self.leave(channel)
 
         if msg == "!disconnect" and user == (owner or admins):
             msg = "Severing connection..."
