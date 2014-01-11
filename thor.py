@@ -275,6 +275,21 @@ class ThorBot(irc.IRCClient):
 
         #Misc
 
+        if msg.startswith("!s"):
+
+            #Sends message to target channel
+
+            wlist = msg.split(' ')
+            targ = itemgetter(1)(wlist)
+
+            #Slice 'n dice the message we want to send
+            tsay = itemgetter(slice(2, None))(wlist)
+
+            #Piece it back together
+            tsay = ' '.join(tsay)
+
+            self.sendLine('PRIVMSG {targ} {tsay}'.format(targ=targ, tsay=tsay))
+
         if msg.startswith("!inv"):
 
             #Invites target user into present channel.
@@ -337,7 +352,7 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!help":
             msg = "Commands: !dance, !join [channel], !leave [channel], !disconnect, !rickroll, !j, " \
-                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user]"
+                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]"
             self.msg(channel, msg)
 
         if msg == "!randrep on" and randrep is False:
