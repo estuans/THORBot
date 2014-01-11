@@ -11,6 +11,7 @@ from twisted.words.protocols import irc
 #INTERNAL Imports
 from modules.logger import Bin
 from modules import perm
+from modules import goslate
 
 #SYS Imports
 import time
@@ -22,6 +23,7 @@ import ConfigParser
 import urllib2
 import urllib
 import json
+import ctypes
 from operator import itemgetter
 from cobe.brain import Brain
 
@@ -36,6 +38,9 @@ gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + 
 
 versionName = "DreadFish"
 versionNumber = "{g}".format(g=gobblenumber)
+versionEnv = "Python 2.7.3"
+
+ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 
 #Config parser. Could be replaced in the future?
 
@@ -44,6 +49,8 @@ cfg.read("hammer.ini")
 
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
+#TODO ... Clean these up. Seriously. Move them to appropriate locations in ThorBot.
+
 p = perm.Permissions
 chttb = True
 randrep = False
@@ -129,6 +136,8 @@ class ThorBot(irc.IRCClient):
         self.msg(channel, msg)
 
     def irc_unknown(self, prefix, command, params):
+        #TODO send an error message describing why I /can't/ join the channel
+
         if command == "INVITE":
             if params[1] in illegal_channels[:]:
                 print "INVITED BUT NOT ALLOWED TO JOIN"
@@ -144,7 +153,7 @@ class ThorBot(irc.IRCClient):
         global chttb
         global randrep
 
-        #PRIVMSG Configuration parameters
+        #TODO reformat the code to render the below variables redundant
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
 
@@ -153,7 +162,6 @@ class ThorBot(irc.IRCClient):
         #managed to conjure up a way to better format messages.
 
         if msg:
-
             #Format
             text = msg.decode('utf-8')
             msg = re.sub('<\S>\s', '', msg)
@@ -162,8 +170,14 @@ class ThorBot(irc.IRCClient):
             br.learn(text)
 
         if self.nickname in msg and chttb is True:
+            #This new implementation of COBE ensures an optimized
+            #output while decreasing the amount of code involved.
+            #Instead of select an entire, unprocessed line of text
+            #this new implementation substracts the parts that aren't
+            #necessary to the whole, and uses only a few words
+            #to generate a reply, creating a much more unique sentence.
 
-            #Strip pasted nicknames and timecodes from message, as well as own nickname
+            #Strip pasted nicknames
             msg = re.sub('<\S>\s', '', msg)
 
             #Format
@@ -172,7 +186,13 @@ class ThorBot(irc.IRCClient):
             #Learn text
             br.learn(text)
 
-            #Create reply
+            #Split text into a list
+            text.split()
+
+            #Select random word from list
+            text = random.choice(text)
+
+            #Create reply from word
             reply = br.reply(text).encode('utf-8')
 
             self.msg(channel, "%s: " % user + reply.replace(self.nickname + ' ', ''))
@@ -207,18 +227,14 @@ class ThorBot(irc.IRCClient):
 
         #URL Fetchers & Integrated Utilities
 
-        if msg == "!qdb":
-            if re.match('[0-9]', msg) is True:
-                re.split(' ', msg)
-                qn = re.compile('[0-9]', msg)
-                url = "http://www.arloria.net/qdb/"
-                params = urllib.urlencode(qn)
-                url2 = (url + params)
-                msg = url2
-                self.msg(channel, msg)
-            else:
-                msg = "No QDB # supplied."
-                self.msg(channel, msg)
+        if msg.startswith("!qdb"):
+            wlist = msg.split(' ')
+
+            addend = itemgetter(1)(wlist)
+            print addend
+            url = "http://www.arloria.net/qdb/%s" % addend
+            msg = url
+            self.msg(channel, msg)
 
         if msg == "!j":
             #Fetches an ol' fashioned Chuck Norris joke and prints it
@@ -233,27 +249,12 @@ class ThorBot(irc.IRCClient):
 
         if self.msg:
             #Logs own messages, so long as self.msg() is called
+            #TODO improve these darned logging mechanisms
 
             self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
 
         #Database things
-
-        if msg == "!ctab":
-            p.createtable()
-            msg = "SQL - SUCCESS"
-            self.msg(channel, msg)
-            print "Table created!"
-
-        if msg == "!dchck":
-            p.datacheck()
-            msg = "Running dataCheck. . ."
-            self.msg(channel, msg)
-            if p.datacheck() == 1:
-                msg = "Tables existed. No further action required."
-                self.msg(channel, msg)
-            if p.datacheck() == 0:
-                msg = "Data insufficient. Tables invalid. Creating tables. . ."
-                self.msg(channel, msg)
+        #TODO render these redundant by automating the perm.py module
 
         if msg == "!chv {user}".format(user=user):
             p.chckvoice(user)
@@ -276,7 +277,6 @@ class ThorBot(irc.IRCClient):
         #Misc
 
         if msg.startswith("!s"):
-
             #Sends message to target channel
 
             wlist = msg.split(' ')
@@ -291,7 +291,6 @@ class ThorBot(irc.IRCClient):
             self.sendLine('PRIVMSG {targ} {tsay}'.format(targ=targ, tsay=tsay))
 
         if msg.startswith("!inv"):
-
             #Invites target user into present channel.
             #May be expanded upon in the future.
 
@@ -351,21 +350,26 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!help":
+            #TODO find a better way to list commands. Perhaps in a private message?
+
             msg = "Commands: !dance, !join [channel], !leave [channel], !disconnect, !rickroll, !j, " \
                   "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]"
             self.msg(channel, msg)
 
         if msg == "!randrep on" and randrep is False:
+            #TODO revise the random replies to fit with the new COBE implementation
             msg = "Random replies turned on."
             self.msg(channel, msg)
             randrep = True
 
         if msg == "!randrep off" and randrep is True:
+            #TODO revise the random replies to fit with the new COBE implementation
             msg = "Random replies turned off."
             self.msg(channel, msg)
             randrep = False
 
         if msg == "!randrep":
+            #TODO revise the random replies to fit with the new COBE implementation
             if randrep is True:
                 msg = "Random replies currently on."
                 self.msg(channel, msg)
@@ -384,7 +388,8 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!version":
             #Passes version and version number to channel
-            msg = "Version | {vnam} | {vnum} |".format(vnam=versionName, vnum=versionNumber)
+            msg = "Version | {vnam} | {vnum} | {venv}".format(vnam=versionName, vnum=versionNumber,
+                                                                         venv=versionEnv)
             self.msg(channel, msg)
 
         if msg == "!rickroll":
