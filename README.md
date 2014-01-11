@@ -38,6 +38,11 @@ Due to Thor's nature, he requires certain things to be present for him to functi
 Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords
 COBE - https://github.com/pteichman/cobe/wiki
 
+Attribution
+=======
+
+- The goslate.py module belongs to ZHUO QIANG ( http://pythonhosted.org/goslate/ ) and is used in accordance to the MIT license
+
 
 Commands
 =======
