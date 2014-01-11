@@ -156,6 +156,8 @@ class ThorBot(irc.IRCClient):
         #TODO reformat the code to render the below variables redundant
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
+        gglapi = cfg.get('API', 'Google')
+        ggid = cfg.get('API', 'Google ID')
 
         #COBE Integration starts here!
         #I had to study the brain of the COBE bot example, but
@@ -227,7 +229,44 @@ class ThorBot(irc.IRCClient):
 
         #URL Fetchers & Integrated Utilities
 
+        if msg.startswith("!t"):
+            #Translates the detected string to English
+
+            gs = goslate.Goslate()
+
+            wlist = msg.split(' ')
+
+            trans = itemgetter(slice(1, None))(wlist)
+
+            trans = ' '.join(trans)
+
+            source = gs.detect(trans)
+            reply = gs.translate(trans, 'en', source)
+
+            self.msg(channel, reply.encode('UTF-8'))
+
+
+        if msg.startswith("!g"):
+            #Returns the first result off the page
+
+            wlist = msg.split(' ')
+
+            append = itemgetter(slice(1, None))(wlist)
+            append = ' '.join(append)
+            append.replace(' ', '+')
+
+            url = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=1" % (gglapi, ggid, append)
+            metdat = urllib2.urlopen(url).read()
+            parsdat = json.loads(metdat)
+            items = parsdat['items']
+            for result in items:
+                link = result['link']
+
+                self.msg(channel, link.encode('UTF-8'))
+
         if msg.startswith("!qdb"):
+            #Fetches the quote with the assigned number from the ArloriaNET Quote Database
+
             wlist = msg.split(' ')
 
             addend = itemgetter(1)(wlist)
