@@ -48,6 +48,8 @@ p = perm.Permissions
 chttb = True
 randrep = False
 
+realname = "THORBot @ VALHALLA"
+
 br = Brain("databases/valhalla.brain")
 
 illegal_channels = ['#welcome', '#jacoders', '#ircrpg', '#tiramisu', '#tribes']
@@ -61,10 +63,8 @@ class ThorBot(irc.IRCClient):
 
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'Nickname')
-        realname = cfg.get('Bot Settings', 'Realname')
         password = cfg.get('Bot Settings', 'NickPass')
         self.nickname = nickname
-        self.realname = realname
         self.password = password
         self.lineRate = 1
 
