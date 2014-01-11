@@ -10,7 +10,7 @@ import sqlite3
 
 i = irc
 ic = irc.IRCClient
-conn = sqlite3.connect('permissions.db')
+conn = sqlite3.connect('databases/permissions.db')
 c = conn.cursor()
 
 
