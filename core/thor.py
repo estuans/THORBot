@@ -59,7 +59,7 @@ realname = "THORBot @ VALHALLA"
 
 br = Brain("databases/valhalla.brain")
 
-illegal_channels = ['#welcome', '#jacoders', '#ircrpg', '#tiramisu', '#tribes']
+illegal_channels = []
 
 
 class ThorBot(irc.IRCClient):

@@ -1,16 +1,16 @@
-import thor
-
 __author__ = 'Platinum'
 
 # Factory, launches and configures the bot and attaches it to the IRC network/channel.
 # All settings can be configured in hammer.ini
 
-from thor import ThorBot
-from modules import perm
 import sys
+import ConfigParser
+
 from twisted.internet import protocol, reactor
 from twisted.python import log
-import ConfigParser
+
+from core.thor import ThorBot
+
 
 cfg = ConfigParser.RawConfigParser()
 cfg.read("hammer.ini")
