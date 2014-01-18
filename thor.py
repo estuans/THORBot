@@ -21,8 +21,8 @@ import re
 #OTHER Imports
 import ConfigParser
 import urllib2
-import urllib
 import json
+import shelve
 import ctypes
 from operator import itemgetter
 from cobe.brain import Brain
@@ -55,11 +55,11 @@ p = perm.Permissions
 chttb = True
 randrep = False
 
-realname = "THORBot @ VALHALLA"
+d = shelve.open("persdata")
 
 br = Brain("databases/valhalla.brain")
 
-illegal_channels = []
+illegal_channels = ['#jacoders']
 
 
 class ThorBot(irc.IRCClient):
@@ -71,6 +71,8 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'Nickname')
         password = cfg.get('Bot Settings', 'NickPass')
+        realname = "THORBot @ VALHALLA"
+        self.realname = realname
         self.nickname = nickname
         self.password = password
         self.lineRate = 1
@@ -105,6 +107,7 @@ class ThorBot(irc.IRCClient):
         #Called when joining a channel
         print "Joined %s" % channel
         self.logger.log("[JOINED %s]" % channel)
+        self.sendLine("MODE {nickname} {mode}".format(nickname=self.nickname, mode="+B"))
 
     def userJoined(self, user, channel):
         #Called when another user joins a channel
@@ -156,6 +159,8 @@ class ThorBot(irc.IRCClient):
         #TODO reformat the code to render the below variables redundant
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
+        ignored = cfg.get('Users', 'Ignored')
+        chatallowed = cfg.get('Channels', 'Allowed')
         gglapi = cfg.get('API', 'Google')
         ggid = cfg.get('API', 'Google ID')
 
@@ -163,15 +168,33 @@ class ThorBot(irc.IRCClient):
         #I had to study the brain of the COBE bot example, but
         #managed to conjure up a way to better format messages.
 
+        #TEMP
+        if msg == "!hs":
+            msg = "on"
+            self.msg("hosterv", msg)
+
         if msg:
             #Format
-            text = msg.decode('utf-8')
             msg = re.sub('<\S>\s', '', msg)
+            text = msg.decode('utf-8')
 
             #Learn text
             br.learn(text)
 
-        if self.nickname in msg and chttb is True:
+        if msg and randrep is True and user != ignored:
+            msg = re.sub('<\S>\s', '', msg)
+            text = msg.decode('utf-8')
+
+            br.learn(text)
+
+            chance = random.random()
+            if chance > 0.7:
+                text.split()
+                text = random.choice(text) + random.choice(text)
+                reply = br.reply(text).encode('utf-8')
+                self.msg(channel, reply)
+
+        if self.nickname in msg and chttb is True and user != ignored:
             #This new implementation of COBE ensures an optimized
             #output while decreasing the amount of code involved.
             #Instead of select an entire, unprocessed line of text
@@ -189,13 +212,15 @@ class ThorBot(irc.IRCClient):
             br.learn(text)
 
             #Split text into a list
-            text.split()
+            text = text.split()
 
             #Select random word from list
             text = random.choice(text)
 
             #Create reply from word
-            reply = br.reply(text).encode('utf-8')
+            reply = br.reply(text, loop_ms=1000).encode('utf-8')
+            reply = reply.replace(self.nickname, '')
+            reply = reply.replace(':' and ": ", '')
 
             self.msg(channel, "%s: " % user + reply.replace(self.nickname + ' ', ''))
 
@@ -205,7 +230,7 @@ class ThorBot(irc.IRCClient):
             msg = "Chatterbot variable status: {st}".format(st=chttb)
             self.msg(channel, msg)
 
-        if msg == "!chatterbot off":
+        if msg == "!chatterbot off" and user == owner:
             #Checks if chttb is true, and if it is, changes it to False.
 
             if chttb is True:
@@ -216,7 +241,7 @@ class ThorBot(irc.IRCClient):
                 msg = "Chatterbot replies already off."
                 self.msg(channel, msg)
 
-        if msg == "!chatterbot on":
+        if msg == "!chatterbot on" and user == owner:
             #Inverse of the above
 
             if chttb is False:
@@ -229,7 +254,30 @@ class ThorBot(irc.IRCClient):
 
         #URL Fetchers & Integrated Utilities
 
-        if msg.startswith("!t"):
+        if msg.startswith("!t "):
+            #Translates the source language into the target language
+
+            gs = goslate.Goslate()
+
+            wlist = msg.split(' ')
+
+            slang = itemgetter(1)(wlist)
+            tlang = itemgetter(2)(wlist)
+
+            print slang
+            print tlang
+
+            slangrep = '%s' % slang
+            tlangrep = '%s' % tlang
+
+            phrase = itemgetter(slice(3, None))(wlist)
+
+            phrase_ = ' '.join(phrase)
+            reply = gs.translate(phrase_, tlangrep, slangrep)
+
+            self.msg(channel, reply.encode('UTF-8'))
+
+        if msg.startswith("!dt "):
             #Translates the detected string to English
 
             gs = goslate.Goslate()
@@ -245,15 +293,13 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, reply.encode('UTF-8'))
 
-
         if msg.startswith("!g"):
             #Returns the first result off the page
 
             wlist = msg.split(' ')
 
             append = itemgetter(slice(1, None))(wlist)
-            append = ' '.join(append)
-            append.replace(' ', '+')
+            append = '+'.join(append)
 
             url = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=1" % (gglapi, ggid, append)
             metdat = urllib2.urlopen(url).read()
@@ -275,22 +321,17 @@ class ThorBot(irc.IRCClient):
             msg = url
             self.msg(channel, msg)
 
-        if msg == "!j":
+        if msg == "!joke":
             #Fetches an ol' fashioned Chuck Norris joke and prints it
 
             rq = urllib2.Request("http://api.icndb.com/jokes/random?")
             joke = urllib2.urlopen(rq).read()
             data = json.loads(joke)
             msg = data['value']['joke']
+            msg = msg.replace('&quot;', '"')
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
         #Logging Things
-
-        if self.msg:
-            #Logs own messages, so long as self.msg() is called
-            #TODO improve these darned logging mechanisms
-
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=self.nickname, m=msg))
 
         #Database things
         #TODO render these redundant by automating the perm.py module
@@ -314,8 +355,11 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         #Misc
+        if msg.startswith("!s ") and user == ignored:
+            msg == "No."
+            self.msg(channel, msg)
 
-        if msg.startswith("!s"):
+        if msg.startswith("!s ") and user != ignored:
             #Sends message to target channel
 
             wlist = msg.split(' ')
@@ -345,7 +389,7 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, pending)
 
-        if msg.startswith("!join"):
+        if msg.startswith("!j "):
 
             #Joins designated channel.
 
@@ -356,7 +400,7 @@ class ThorBot(irc.IRCClient):
                 #If target is found in illegal channels list,
                 #cancels operation and apologises in a polite manner.
 
-                msg = "Sorry, {u}, I'm not allowed to join {t}".format(u=user, t=targ)
+                msg = "Sorry, {u}, I'm too sane to join {t}".format(u=user, t=targ)
                 self.msg(channel, msg)
 
             else:
@@ -368,7 +412,7 @@ class ThorBot(irc.IRCClient):
 
                 self.msg(channel, msg)
 
-        if msg.startswith("!leave"):
+        if msg.startswith("!leave "):
             #Sends a part message to the server,
             #leaving the designated channel(even if not sent from aforementioned channel)
 
@@ -379,6 +423,13 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
             self.sendLine('part {c}'.format(c=targ))
+
+        if msg.startswith("!nick ") and user == owner:
+            text = msg.split()
+            new_nick = itemgetter(1)(text)
+            self.nickname = new_nick
+
+            self.sendLine('nick {c}'.format(c=new_nick))
 
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
@@ -391,17 +442,18 @@ class ThorBot(irc.IRCClient):
         if msg == "!help":
             #TODO find a better way to list commands. Perhaps in a private message?
 
-            msg = "Commands: !dance, !join [channel], !leave [channel], !disconnect, !rickroll, !j, " \
-                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]"
+            msg = "Commands: !dance, !j [channel], !leave [channel], !disconnect, !rickroll, !joke, " \
+                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]" \
+                  ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number]"
             self.msg(channel, msg)
 
-        if msg == "!randrep on" and randrep is False:
+        if msg == "!randrep on" and randrep is False and user == owner:
             #TODO revise the random replies to fit with the new COBE implementation
             msg = "Random replies turned on."
             self.msg(channel, msg)
             randrep = True
 
-        if msg == "!randrep off" and randrep is True:
+        if msg == "!randrep off" and randrep is True and user == owner:
             #TODO revise the random replies to fit with the new COBE implementation
             msg = "Random replies turned off."
             self.msg(channel, msg)
