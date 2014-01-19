@@ -26,6 +26,7 @@ class Permissions():
         """
 
         c.execute('''CREATE TABLE permissions(user, level, channel)''')
+        c.execute('''CREATE TABLE illegal_channels(channel, state)''')
 
         conn.commit()
         conn.close()
@@ -95,3 +96,22 @@ class Permissions():
         """
 
         sqin = '''SELECT FROM permissions(level,channel)'''
+
+    def illegalchannel(self, channel, state):
+
+        allowed = 1
+        disallowed = 0
+
+    def add_illegal(self, channel, state):
+
+        check = '''SELECT FROM illegal_channels(channel,state)'''
+        if check is 1:
+            return "Invalid"
+        if check is 0:
+            sqin = '''INSERT INTO illegal_channels(channel,state) VALUES (?,?,?)'''
+            params = (channel, 0)
+            c.execute(sqin, params)
+
+
+        conn.commit()
+        conn.close()
