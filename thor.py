@@ -190,11 +190,12 @@ class ThorBot(irc.IRCClient):
             chance = random.random()
             if chance > 0.7:
                 text.split()
-                text = random.choice(text) + random.choice(text)
+                text = random.choice(text) + " " + random.choice(text)
                 reply = br.reply(text).encode('utf-8')
+
                 self.msg(channel, reply)
 
-        if self.nickname in msg and chttb is True and user != ignored:
+        if self.nickname in msg and chttb is True:
             #This new implementation of COBE ensures an optimized
             #output while decreasing the amount of code involved.
             #Instead of select an entire, unprocessed line of text
@@ -212,17 +213,27 @@ class ThorBot(irc.IRCClient):
             br.learn(text)
 
             #Split text into a list
-            text = text.split()
+            origin = text.split()
 
             #Select random word from list
-            text = random.choice(text)
+            text = random.choice(origin)
+            t2 = random.choice(origin)
+            text = text + t2
+
+            text = ' '.join(text)
 
             #Create reply from word
-            reply = br.reply(text, loop_ms=1000).encode('utf-8')
-            reply = reply.replace(self.nickname, '')
-            reply = reply.replace(':' and ": ", '')
+            reply = br.reply(text, loop_ms=1500).encode('utf-8')
 
-            self.msg(channel, "%s: " % user + reply.replace(self.nickname + ' ', ''))
+            reply = re.sub('\s[:.,!?]\s', '', reply)
+            reply = reply.replace(self.nickname, '')
+
+            dc = random.random()
+
+            if dc > 0.5:
+                self.msg(channel, "%s: " % user + reply)
+            else:
+                self.msg(channel, reply)
 
         if msg == "!chatterbot":
             #Checks what the status of the chttb variable is and provides it in place of {st}
@@ -263,9 +274,6 @@ class ThorBot(irc.IRCClient):
 
             slang = itemgetter(1)(wlist)
             tlang = itemgetter(2)(wlist)
-
-            print slang
-            print tlang
 
             slangrep = '%s' % slang
             tlangrep = '%s' % tlang
@@ -316,7 +324,6 @@ class ThorBot(irc.IRCClient):
             wlist = msg.split(' ')
 
             addend = itemgetter(1)(wlist)
-            print addend
             url = "http://www.arloria.net/qdb/%s" % addend
             msg = url
             self.msg(channel, msg)
@@ -380,8 +387,6 @@ class ThorBot(irc.IRCClient):
             invchan = channel
             wlist = msg.split(' ')
             targ = itemgetter(1)(wlist)
-
-            print wlist, targ, invchan
 
             self.sendLine('INVITE {t} {c}'.format(c=invchan, t=targ))
 
