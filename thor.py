@@ -22,7 +22,6 @@ import re
 import ConfigParser
 import urllib2
 import json
-import shelve
 import ctypes
 from operator import itemgetter
 from cobe.brain import Brain
@@ -54,8 +53,6 @@ cfg.read("hammer.ini")
 p = perm.Permissions
 chttb = True
 randrep = False
-
-d = shelve.open("persdata")
 
 br = Brain("databases/valhalla.brain")
 

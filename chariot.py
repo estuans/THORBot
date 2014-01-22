@@ -5,11 +5,12 @@ __author__ = 'Platinum'
 
 import sys
 import ConfigParser
+import wx
 
 from twisted.internet import protocol, reactor
 from twisted.python import log
 
-from core.thor import ThorBot
+from thor import ThorBot
 
 
 cfg = ConfigParser.RawConfigParser()

@@ -37,7 +37,7 @@ class Permissions():
         Checks if table 'permissions' exists, and if not creates it. To be run alongside SignedOn.
         """
 
-        tab_check = c.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='permissions' ''')
+        tab_check = c.execute('''SELECT name FROM 'permissions.db' WHERE type='table' AND name='permissions' ''')
 
         res1 = "Database Already Exists."
         res2 = "Database Created."
@@ -81,11 +81,19 @@ class Permissions():
         """
         Applied 'voiced' condition to user. (Level 1)
         """
-
-        sqin = '''INSERT INTO permissions(user,level,channel) VALUES (?,?,?)'''
+        sqch = '''SELECT FROM permissions(user,level,channel) VALUES (?,?,?)'''
         params = (user, 1, channel)
-        c.execute(sqin, params)
-        conn.commit()
+        c.execute(sqch, params)
+
+        if sqch == 1:
+            sqin = '''INSERT INTO permissions(user,level,channel) VALUES (?,?,?)'''
+            params = (user, 1, channel)
+            c.execute(sqin, params)
+            conn.commit()
+
+        else:
+            err = "ERROR: Data exists"
+            return err
 
         conn.close()
 
