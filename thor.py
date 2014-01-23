@@ -21,6 +21,7 @@ import re
 #OTHER Imports
 import ConfigParser
 import urllib2
+import urllib
 import json
 import ctypes
 from operator import itemgetter
@@ -35,7 +36,7 @@ from cobe.brain import Brain
 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 1))
 
-versionName = "DreadFish"
+versionName = "Sinful Fisher"
 versionNumber = "{g}".format(g=gobblenumber)
 versionEnv = "Python 2.7.3"
 
@@ -56,7 +57,8 @@ randrep = False
 
 br = Brain("databases/valhalla.brain")
 
-illegal_channels = ['#jacoders']
+illegal_channels = ['#jacoders', '#0', '0']
+silent_channels = ['#welcome', '#gamefront']
 
 
 class ThorBot(irc.IRCClient):
@@ -68,7 +70,7 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'Nickname')
         password = cfg.get('Bot Settings', 'NickPass')
-        realname = "THORBot @ VALHALLA"
+        realname = "Commands - http://goo.gl/ZriIoX"
         self.realname = realname
         self.nickname = nickname
         self.password = password
@@ -178,7 +180,7 @@ class ThorBot(irc.IRCClient):
             #Learn text
             br.learn(text)
 
-        if msg and randrep is True and user != ignored:
+        if msg and randrep is True and channel != silent_channels:
             msg = re.sub('<\S>\s', '', msg)
             text = msg.decode('utf-8')
 
@@ -192,7 +194,7 @@ class ThorBot(irc.IRCClient):
 
                 self.msg(channel, reply)
 
-        if self.nickname in msg and chttb is True:
+        if self.nickname in msg and chttb is True and channel != silent_channels:
             #This new implementation of COBE ensures an optimized
             #output while decreasing the amount of code involved.
             #Instead of select an entire, unprocessed line of text
@@ -262,6 +264,23 @@ class ThorBot(irc.IRCClient):
 
         #URL Fetchers & Integrated Utilities
 
+        if msg.startswith("!gogl "):
+
+            wlist = msg.split(' ')
+
+            url = itemgetter(1)(wlist)
+
+            ggl = 'https://www.googleapis.com/urlshortener/v1/url'
+
+            pload = {'longUrl': url}
+            headers = {'Content-Type': 'application/json'}
+
+            request = urllib2.Request(ggl, json.dumps(pload), headers)
+            rtu = urllib2.urlopen(request).read()
+            msg = json.loads(rtu)['id']
+
+            self.msg(channel, msg.encode('UTF-8'))
+
         if msg.startswith("!t "):
             #Translates the source language into the target language
 
@@ -298,7 +317,7 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, reply.encode('UTF-8'))
 
-        if msg.startswith("!g"):
+        if msg.startswith("!g "):
             #Returns the first result off the page
 
             wlist = msg.split(' ')
@@ -321,9 +340,21 @@ class ThorBot(irc.IRCClient):
             wlist = msg.split(' ')
 
             addend = itemgetter(1)(wlist)
+
             url = "http://www.arloria.net/qdb/%s" % addend
-            msg = url
-            self.msg(channel, msg)
+            rd = urllib2.urlopen(url)
+            urlr = rd.read()
+
+            check = "Viewing Quote: #%s" % addend
+
+            runch = re.search(check, urlr)
+
+            if runch:
+                msg = "[QUOTE #%s] http://www.arloria.net/qdb/%s" % (addend, addend)
+                self.msg(channel, msg)
+            elif not runch:
+                msg = "Sorry, #%s is not a valid quote number." % addend
+                self.msg(channel, msg)
 
         if msg == "!joke":
             #Fetches an ol' fashioned Chuck Norris joke and prints it
@@ -332,7 +363,10 @@ class ThorBot(irc.IRCClient):
             joke = urllib2.urlopen(rq).read()
             data = json.loads(joke)
             msg = data['value']['joke']
+
+            #Fixes parsing issue
             msg = msg.replace('&quot;', '"')
+
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
         #Logging Things
@@ -391,7 +425,7 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, pending)
 
-        if msg.startswith("!j "):
+        if msg.startswith("!j ") and user == owner:
 
             #Joins designated channel.
 
@@ -446,8 +480,9 @@ class ThorBot(irc.IRCClient):
 
             msg = "Commands: !dance, !j [channel], !leave [channel], !disconnect, !rickroll, !joke, " \
                   "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]" \
-                  ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number]"
-            self.msg(channel, msg)
+                  ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number], " \
+                  "!gogl [URL], !nick"
+            self.notice(user, msg)
 
         if msg == "!randrep on" and randrep is False and user == owner:
             #TODO revise the random replies to fit with the new COBE implementation
