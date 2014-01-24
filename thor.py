@@ -21,7 +21,6 @@ import re
 #OTHER Imports
 import ConfigParser
 import urllib2
-import urllib
 import json
 import ctypes
 from operator import itemgetter
@@ -34,7 +33,7 @@ from cobe.brain import Brain
 #arbitrary nature of version numbers in software today.
 
 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 1))
+gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 100))
 
 versionName = "Sinful Fisher"
 versionNumber = "{g}".format(g=gobblenumber)
@@ -57,7 +56,7 @@ randrep = False
 
 br = Brain("databases/valhalla.brain")
 
-illegal_channels = ['#jacoders', '#0', '0']
+illegal_channels = ['#jacoders', '#0', '0', '#0,0']
 silent_channels = ['#welcome', '#gamefront']
 
 
@@ -92,8 +91,11 @@ class ThorBot(irc.IRCClient):
         self.logger.log("[%s]Erroneus Nickname" % time.asctime(time.localtime(time.time())))
 
     def irc_ERR_PASSWDMISMATCH(self, prefix, params):
-        print "!!!INCORRECT PASSWORD!!!\n Check hammer.ini for the NICKPASS parameter"
-        return
+        if None:
+            pass
+        else:
+            print "!!!INCORRECT PASSWORD!!!\n Check hammer.ini for the NICKPASS parameter"
+            return
 
     #EVENTS
 
@@ -159,7 +161,6 @@ class ThorBot(irc.IRCClient):
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignored')
-        chatallowed = cfg.get('Channels', 'Allowed')
         gglapi = cfg.get('API', 'Google')
         ggid = cfg.get('API', 'Google ID')
 
@@ -174,27 +175,41 @@ class ThorBot(irc.IRCClient):
 
         if msg:
             #Format
-            msg = re.sub('<\S>\s', '', msg)
+            msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('\[.*]', '', msg)
             text = msg.decode('utf-8')
 
             #Learn text
-            br.learn(text)
+            if not msg.startswith("!"):
+                if not user == ignored:
+                    br.learn(text)
 
-        if msg and randrep is True and channel != silent_channels:
-            msg = re.sub('<\S>\s', '', msg)
+        if msg and randrep is True:
+            #If a message is detected and randrep is set to true
+            #rolls a dice and checks the result. If the result
+            #is higher than 0.7, he'll throw out a random message
+            #but only if the channel isn't forbidden.
+
+            msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('\[.*]', '', msg)
             text = msg.decode('utf-8')
 
-            br.learn(text)
+            if not msg.startswith("!"):
+                if not user == ignored:
+                    br.learn(text)
 
-            chance = random.random()
-            if chance > 0.7:
-                text.split()
-                text = random.choice(text) + " " + random.choice(text)
-                reply = br.reply(text).encode('utf-8')
+            if channel not in silent_channels[:]:
+                chance = random.random()
+                if chance > 0.7:
+                    text.split()
+                    text = random.choice(text) + " " + random.choice(text)
+                    reply = br.reply(text).encode('utf-8')
 
-                self.msg(channel, reply)
+                    self.msg(channel, reply)
 
-        if self.nickname in msg and chttb is True and channel != silent_channels:
+        if self.nickname in msg and chttb is True:
             #This new implementation of COBE ensures an optimized
             #output while decreasing the amount of code involved.
             #Instead of select an entire, unprocessed line of text
@@ -203,28 +218,34 @@ class ThorBot(irc.IRCClient):
             #to generate a reply, creating a much more unique sentence.
 
             #Strip pasted nicknames
-            msg = re.sub('<\S>\s', '', msg)
+            msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('\[.*]', '', msg)
 
             #Format
             text = msg.decode('utf-8')
 
             #Learn text
-            br.learn(text)
+            if not msg.startswith("!"):
+                if not user == ignored:
+                    br.learn(text)
 
             #Split text into a list
-            origin = text.split()
+            #origin = text.split()
 
             #Select random word from list
-            text = random.choice(origin)
-            t2 = random.choice(origin)
-            text = text + t2
+            #text = random.choice(origin)
+            #t2 = random.choice(origin)
+            #text = text + t2
 
-            text = ' '.join(text)
+            #text = ' '.join(text)
 
             #Create reply from word
             reply = br.reply(text, loop_ms=1500).encode('utf-8')
 
-            reply = re.sub('\s[:.,!?]\s', '', reply)
+            reply = re.sub('<.*>\s', '', reply)
+            reply = re.sub('\s[.,!{}\(\)[\]]', '', reply)
+            reply = re.sub('\[.*]', '', reply)
             reply = reply.replace(self.nickname, '')
 
             dc = random.random()
@@ -425,7 +446,7 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, pending)
 
-        if msg.startswith("!j ") and user == owner:
+        if msg.startswith("!j "):
 
             #Joins designated channel.
 
