@@ -58,6 +58,7 @@ br = Brain("databases/valhalla.brain")
 
 illegal_channels = ['#jacoders', '#0', '0', '#0,0']
 silent_channels = ['#welcome', '#gamefront']
+ignored = ["Slut", "Zephyr", "ChanBot", "XCat"]
 
 
 class ThorBot(irc.IRCClient):
@@ -166,7 +167,6 @@ class ThorBot(irc.IRCClient):
         #TODO reformat the code to render the below variables redundant
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
-        ignored = cfg.get('Users', 'Ignored')
         gglapi = cfg.get('API', 'Google')
         ggid = cfg.get('API', 'Google ID')
 
@@ -176,27 +176,16 @@ class ThorBot(irc.IRCClient):
         #I had to study the brain of the COBE bot example, but
         #managed to conjure up a way to better format messages.
 
-        #TEMP
-        if msg == "!hs":
-            msg = "on"
-            self.msg("hosterv", msg)
-
         if msg:
             #Format
-            msg = re.sub('<.*>\s', '', msg)
-            msg = re.sub('\s+\s', '', msg)
-            msg = re.sub('[.*<.*>.*]', '', msg)
-            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
-            msg = re.sub('[?!/():;.,]\s\s', '', msg)
-            msg = re.sub('\[.*]', '', msg)
-            msg = re.sub('^\s.', '', msg)
-            msg = re.sub('^([0-9][0-9]\s)', '', msg)
-            text = msg.decode('utf-8')
+            #text = msg.decode('utf-8')
+            text = msg
 
             #Learn text
             if not msg.startswith("!"):
-                if not user == ignored:
-                    br.learn(text)
+                if not user not in ignored:
+                    if self.nickname not in msg:
+                        br.learn(text)
 
         if msg and randrep is True:
             #If a message is detected and randrep is set to true
@@ -204,19 +193,11 @@ class ThorBot(irc.IRCClient):
             #is higher than 0.7, he'll throw out a random message
             #but only if the channel isn't forbidden.
 
-            msg = re.sub('<.*>\s', '', msg)
-            msg = re.sub('\s+\s', '', msg)
-            msg = re.sub('[.*<.*>.*]', '', msg)
-            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
-            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
-            msg = re.sub('[?!/():;.,]\s\s', '', msg)
-            msg = re.sub('\[.*]', '', msg)
-            msg = re.sub('^\s.', '', msg)
-            msg = re.sub('^([0-9][0-9]\s)', '', msg)
-            text = msg.decode('utf-8')
+            #text = msg.decode('utf-8')
+            text = msg
 
             if not msg.startswith("!"):
-                if not user == ignored:
+                if not user not in ignored:
                     br.learn(text)
 
             if channel not in silent_channels[:]:
@@ -236,47 +217,13 @@ class ThorBot(irc.IRCClient):
             #necessary to the whole, and uses only a few words
             #to generate a reply, creating a much more unique sentence.
 
-            #Strip pasted nicknames
-            msg = re.sub('<.*>\s', '', msg)
-            msg = re.sub('\s+\s', '', msg)
-            msg = re.sub('[.*<.*>.*]', '', msg)
-            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
-            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
-            msg = re.sub('[?!/():;.,]\s\s', '', msg)
-            msg = re.sub('\[.*]', '', msg)
-            msg = re.sub('^\s.', '', msg)
-            msg = re.sub('^([0-9][0-9]\s)', '', msg)
-
             #Format
-            text = msg.decode('utf-8')
-
-            #Learn text
-            if not msg.startswith("!"):
-                if not user == ignored:
-                    br.learn(text)
-
-            #Split text into a list
-            #origin = text.split()
-
-            #Select random word from list
-            #text = random.choice(origin)
-            #t2 = random.choice(origin)
-            #text = text + t2
-
-            #text = ' '.join(text)
+            #text = msg.decode('utf-8')
+            text = msg
 
             #Create reply from word
             reply = br.reply(text, loop_ms=1500).encode('utf-8')
 
-            reply = re.sub('<.*>\s', '', reply)
-            reply = re.sub('\s+\s', '', reply)
-            reply = re.sub('[.*<.*>.*]', '', reply)
-            reply = re.sub('\s[.,!{}\(\)[\]]', '', reply)
-            reply = re.sub('[a-zA-Z]+\s*:', '', reply)
-            reply = re.sub('[?!/():;.,]\s\s', '', reply)
-            reply = re.sub('\[.*]', '', reply)
-            reply = re.sub('^\s.', '', reply)
-            reply = re.sub('^([0-9][0-9]\s)', '', reply)
             reply = reply.replace(self.nickname, '')
 
             dc = random.random()
@@ -422,11 +369,11 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
         #Misc
-        if msg.startswith("!s ") and user == ignored:
+        if msg.startswith("!s ") and user in ignored:
             msg == "No."
             self.msg(channel, msg)
 
-        if msg.startswith("!s ") and user != ignored:
+        if msg.startswith("!s ") and user not in ignored:
             #Sends message to target channel
 
             wlist = msg.split(' ')
@@ -577,28 +524,12 @@ class ThorBot(irc.IRCClient):
         if self.nickname in message:
             msg = message
 
-            msg = re.sub('<.*>\s', '', msg)
-            msg = re.sub('\s+\s', '', msg)
-            msg = re.sub('[.*<.*>.*]', '', msg)
-            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
-            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
-            msg = re.sub('[?!/():;.,]\s\s', '', msg)
-            msg = re.sub('\[.*]', '', msg)
-
             #Format
             text = msg.decode('utf-8')
 
             #Create reply from word
             reply = br.reply(text, loop_ms=500).encode('utf-8')
 
-            reply = re.sub('<.*>\s', '', reply)
-            reply = re.sub('\s+\s', '', reply)
-            reply = re.sub('[.*<.*>.*]', '', reply)
-            reply = re.sub('\s[.,!{}\(\)[\]]', '', reply)
-            reply = re.sub('[a-zA-Z]+\s*:', '', reply)
-            reply = re.sub('[?!/():;.,]\s\s', '', reply)
-            reply = re.sub('\[.*]', '', reply)
-            reply = re.sub('^\s.', '', reply)
             reply = reply.replace(self.nickname, '')
 
             dc = random.random()
