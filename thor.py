@@ -114,15 +114,20 @@ class ThorBot(irc.IRCClient):
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
 
+        greetings = ["Atrast vala, %s", "Yo, %s", "Welcome, %s!", "Aneth ara, %s",
+                     "Mae g'ovannen, %s!", "Gi suilon, %s!", "Vemu ai-menu, %s",
+                     "Shanedan, %s", "Avanna, %s", "Greetings, %s", "Hello, %s",
+                     "I greet you, %s", "Hi %s!", "G'day, %s", "%s is here!",
+                     "%s has joined the channel!", "Awesome, it's %s!"]
+
         chance = random.random()
 
         if chance >= 0.2:
-            print "Welcomed %s. Chance: %s" % (user, chance)
-            msg = "Welcome to %s, %s" % (channel, user)
+            msg = random.choice(greetings) % user
             self.logger.log(msg)
             self.msg(channel, msg)
         if chance <= 0.2:
-            print "Chance:", chance
+            pass
         self.logger.log("%s has joined %s" % (user, channel))
 
     def userLeft(self, user, channel):
@@ -140,11 +145,12 @@ class ThorBot(irc.IRCClient):
         self.msg(channel, msg)
 
     def irc_unknown(self, prefix, command, params):
-        #TODO send an error message describing why I /can't/ join the channel
 
         if command == "INVITE":
             if params[1] in illegal_channels[:]:
                 print "INVITED BUT NOT ALLOWED TO JOIN"
+                msg = "Sorry, I'm not allowed to join %s" % params[1]
+                self.msg(params[0], msg)
 
             else:
                 self.join(params[1])
@@ -164,6 +170,8 @@ class ThorBot(irc.IRCClient):
         gglapi = cfg.get('API', 'Google')
         ggid = cfg.get('API', 'Google ID')
 
+        #To prevent abuse, here we test if the user is marked for it.
+
         #COBE Integration starts here!
         #I had to study the brain of the COBE bot example, but
         #managed to conjure up a way to better format messages.
@@ -176,8 +184,13 @@ class ThorBot(irc.IRCClient):
         if msg:
             #Format
             msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s+\s', '', msg)
+            msg = re.sub('[.*<.*>.*]', '', msg)
             msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('[?!/():;.,]\s\s', '', msg)
             msg = re.sub('\[.*]', '', msg)
+            msg = re.sub('^\s.', '', msg)
+            msg = re.sub('^([0-9][0-9]\s)', '', msg)
             text = msg.decode('utf-8')
 
             #Learn text
@@ -192,8 +205,14 @@ class ThorBot(irc.IRCClient):
             #but only if the channel isn't forbidden.
 
             msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s+\s', '', msg)
+            msg = re.sub('[.*<.*>.*]', '', msg)
             msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
+            msg = re.sub('[?!/():;.,]\s\s', '', msg)
             msg = re.sub('\[.*]', '', msg)
+            msg = re.sub('^\s.', '', msg)
+            msg = re.sub('^([0-9][0-9]\s)', '', msg)
             text = msg.decode('utf-8')
 
             if not msg.startswith("!"):
@@ -219,8 +238,14 @@ class ThorBot(irc.IRCClient):
 
             #Strip pasted nicknames
             msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s+\s', '', msg)
+            msg = re.sub('[.*<.*>.*]', '', msg)
             msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
+            msg = re.sub('[?!/():;.,]\s\s', '', msg)
             msg = re.sub('\[.*]', '', msg)
+            msg = re.sub('^\s.', '', msg)
+            msg = re.sub('^([0-9][0-9]\s)', '', msg)
 
             #Format
             text = msg.decode('utf-8')
@@ -244,8 +269,14 @@ class ThorBot(irc.IRCClient):
             reply = br.reply(text, loop_ms=1500).encode('utf-8')
 
             reply = re.sub('<.*>\s', '', reply)
+            reply = re.sub('\s+\s', '', reply)
+            reply = re.sub('[.*<.*>.*]', '', reply)
             reply = re.sub('\s[.,!{}\(\)[\]]', '', reply)
+            reply = re.sub('[a-zA-Z]+\s*:', '', reply)
+            reply = re.sub('[?!/():;.,]\s\s', '', reply)
             reply = re.sub('\[.*]', '', reply)
+            reply = re.sub('^\s.', '', reply)
+            reply = re.sub('^([0-9][0-9]\s)', '', reply)
             reply = reply.replace(self.nickname, '')
 
             dc = random.random()
@@ -390,29 +421,6 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
-        #Logging Things
-
-        #Database things
-        #TODO render these redundant by automating the perm.py module
-
-        if msg == "!chv {user}".format(user=user):
-            p.chckvoice(user)
-
-        if msg == "!v {user}".format(user=user):
-            p.permvoice(user, channel)
-            msg = "Voiced {user}".format(user=user)
-            self.msg(channel, msg)
-
-        if msg == "!h {user}".format(user=user):
-            p.permhop(user, channel)
-            msg = "Half-opped {user}".format(user=user)
-            self.msg(channel, msg)
-
-        if msg == "!o {user}".format(user=user):
-            p.permop(user, channel)
-            msg = "Opped {user}".format(user=user)
-            self.msg(channel, msg)
-
         #Misc
         if msg.startswith("!s ") and user == ignored:
             msg == "No."
@@ -497,34 +505,33 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!help":
-            #TODO find a better way to list commands. Perhaps in a private message?
-
             msg = "Commands: !dance, !j [channel], !leave [channel], !disconnect, !rickroll, !joke, " \
                   "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]" \
                   ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number], " \
                   "!gogl [URL], !nick"
             self.notice(user, msg)
 
-        if msg == "!randrep on" and randrep is False and user == owner:
-            #TODO revise the random replies to fit with the new COBE implementation
-            msg = "Random replies turned on."
-            self.msg(channel, msg)
-            randrep = True
+        if msg.startswith("!randrep"):
+            if len(msg) >= 11:
+                wlist = msg.split(' ')
+                check = itemgetter(1)(wlist)
 
-        if msg == "!randrep off" and randrep is True and user == owner:
-            #TODO revise the random replies to fit with the new COBE implementation
-            msg = "Random replies turned off."
-            self.msg(channel, msg)
-            randrep = False
+                if check == "on" and randrep is False and user == owner:
+                    msg = "Random replies turned on."
+                    self.msg(channel, msg)
+                    randrep = True
 
-        if msg == "!randrep":
-            #TODO revise the random replies to fit with the new COBE implementation
-            if randrep is True:
-                msg = "Random replies currently on."
-                self.msg(channel, msg)
-            if randrep is False:
-                msg = "Random replies currently off."
-                self.msg(channel, msg)
+                elif check == "off" and randrep is True and user == owner:
+                    msg = "Random replies turned off."
+                    self.msg(channel, msg)
+                    randrep = False
+            elif len(msg) == 8:
+                if randrep is True:
+                    msg = "Random replies currently on."
+                    self.msg(channel, msg)
+                elif randrep is False:
+                    msg = "Random replies currently off."
+                    self.msg(channel, msg)
 
         if msg == "!rejoin":
             #Rejoins channel
@@ -566,6 +573,40 @@ class ThorBot(irc.IRCClient):
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
         self.logger.log("[{c}] * {u} {m}".format(c=channel, u=user, m=message))
+
+        if self.nickname in message:
+            msg = message
+
+            msg = re.sub('<.*>\s', '', msg)
+            msg = re.sub('\s+\s', '', msg)
+            msg = re.sub('[.*<.*>.*]', '', msg)
+            msg = re.sub('\s[.,!{}\(\)[\]]', '', msg)
+            msg = re.sub('[a-zA-Z]+\s*:', '', msg)
+            msg = re.sub('[?!/():;.,]\s\s', '', msg)
+            msg = re.sub('\[.*]', '', msg)
+
+            #Format
+            text = msg.decode('utf-8')
+
+            #Create reply from word
+            reply = br.reply(text, loop_ms=500).encode('utf-8')
+
+            reply = re.sub('<.*>\s', '', reply)
+            reply = re.sub('\s+\s', '', reply)
+            reply = re.sub('[.*<.*>.*]', '', reply)
+            reply = re.sub('\s[.,!{}\(\)[\]]', '', reply)
+            reply = re.sub('[a-zA-Z]+\s*:', '', reply)
+            reply = re.sub('[?!/():;.,]\s\s', '', reply)
+            reply = re.sub('\[.*]', '', reply)
+            reply = re.sub('^\s.', '', reply)
+            reply = reply.replace(self.nickname, '')
+
+            dc = random.random()
+
+            if dc > 0.5:
+                self.msg(channel, "%s: " % user + reply)
+            else:
+                self.msg(channel, reply)
 
     #IRC CALLBACKS
 
