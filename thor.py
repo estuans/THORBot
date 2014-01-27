@@ -119,11 +119,18 @@ class ThorBot(irc.IRCClient):
                      "Mae g'ovannen, %s!", "Gi suilon, %s!", "Vemu ai-menu, %s",
                      "Shanedan, %s", "Avanna, %s", "Greetings, %s", "Hello, %s",
                      "I greet you, %s", "Hi %s!", "G'day, %s", "%s is here!",
-                     "%s has joined the channel!", "Awesome, it's %s!"]
+                     "%s has joined the channel!", "Awesome, it's %s!",
+                     "Huzzah! We have %s in the channel!",
+                     "Surprise, it's %s!", "Happy to see you, %s!",
+                     "What's up, %s?", "Hey %s!",
+                     "Kaixo, %s!", "Degemer mad, %s.", "Zdravei, %s!", "Hej %s!",
+                     "Goddag, %s!", "Ahoj, %s!", "How do you do, %s?",
+                     "Tere, %s!", "Moin moin, %s!", "Szervusz %s!",
+                     "Buon giorno, %s!", "Salve, %s.", "Labas %s!"]
 
         chance = random.random()
 
-        if chance >= 0.2:
+        if chance >= 0.2 and channel != silent_channels:
             msg = random.choice(greetings) % user
             self.logger.log(msg)
             self.msg(channel, msg)
