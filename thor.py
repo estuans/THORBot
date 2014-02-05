@@ -53,12 +53,13 @@ cfg.read("hammer.ini")
 p = perm.Permissions
 chttb = True
 randrep = False
+greetings_enabled = False
 
 br = Brain("databases/valhalla.brain")
 
-illegal_channels = ['#jacoders', '#0', '0', '#0,0']
-silent_channels = ['#welcome', '#gamefront']
-ignored = ["Slut", "Zephyr", "ChanBot", "XCat"]
+illegal_channels = ['#jacoders', '#0', '0', '#0,0', '#tribes']
+silent_channels = ['gamefront', 'welcome']
+ignored = ["Slut", "Zephyr", "ChanBot", "XCat", "SpiBot", "Smek"]
 
 
 class ThorBot(irc.IRCClient):
@@ -130,7 +131,7 @@ class ThorBot(irc.IRCClient):
 
         chance = random.random()
 
-        if chance >= 0.2 and channel != silent_channels:
+        if chance >= 0.2 and greetings_enabled is True:
             msg = random.choice(greetings) % user
             self.logger.log(msg)
             self.msg(channel, msg)
@@ -158,7 +159,7 @@ class ThorBot(irc.IRCClient):
             if params[1] in illegal_channels[:]:
                 print "INVITED BUT NOT ALLOWED TO JOIN"
                 msg = "Sorry, I'm not allowed to join %s" % params[1]
-                self.msg(params[0], msg)
+                self.sendLine("PRIVMSG %s %s" % (params[0], msg))
 
             else:
                 self.join(params[1])
@@ -170,6 +171,7 @@ class ThorBot(irc.IRCClient):
         #Globals
         global chttb
         global randrep
+        global greetings_enabled
 
         #TODO reformat the code to render the below variables redundant
         owner = cfg.get('Users', 'Owner')
@@ -184,15 +186,17 @@ class ThorBot(irc.IRCClient):
         #managed to conjure up a way to better format messages.
 
         if msg:
-            #Format
-            #text = msg.decode('utf-8')
-            text = msg
+            br.learn(msg)
 
-            #Learn text
-            if not msg.startswith("!"):
-                if not user not in ignored:
-                    if self.nickname not in msg:
-                        br.learn(text)
+        if msg.startswith("!greetings"):
+            wlist = msg.split(' ')
+            check = itemgetter(1)(wlist)
+
+            if check == "on" and greetings_enabled is False and user == owner:
+                greetings_enabled = True
+
+            elif check == "off" and greetings_enabled is True and user == owner:
+                greetings_enabled = False
 
         if msg and randrep is True:
             #If a message is detected and randrep is set to true
@@ -200,12 +204,7 @@ class ThorBot(irc.IRCClient):
             #is higher than 0.7, he'll throw out a random message
             #but only if the channel isn't forbidden.
 
-            #text = msg.decode('utf-8')
             text = msg
-
-            if not msg.startswith("!"):
-                if not user not in ignored:
-                    br.learn(text)
 
             if channel not in silent_channels[:]:
                 chance = random.random()
@@ -216,7 +215,7 @@ class ThorBot(irc.IRCClient):
 
                     self.msg(channel, reply)
 
-        if self.nickname in msg and chttb is True:
+        if self.nickname in msg and chttb is True and user not in ignored:
             #This new implementation of COBE ensures an optimized
             #output while decreasing the amount of code involved.
             #Instead of select an entire, unprocessed line of text
@@ -224,21 +223,28 @@ class ThorBot(irc.IRCClient):
             #necessary to the whole, and uses only a few words
             #to generate a reply, creating a much more unique sentence.
 
+            random_words = ['apple', 'pear', 'banana', 'machine', 'machines',
+                            'presidents', 'people', 'cats', 'bears', 'gorillas',
+                            'music', 'green', 'purple', 'interesting things',
+                            'zephyrs', 'smeks', 'objects', 'strings', 'integers',
+                            'floats', 'mathematics', 'arithmetic', 'metric system',
+                            'imperial system', 'great britain', 'europe', 'france',
+                            'ArloriaNET', 'computers', 'AIs', 'games', 'no one',
+                            'randomly', 'weirdly', 'strangely', 'people', 'everyone',
+                            'where', 'what', 'why', 'how']
+
+            msg = msg.replace(self.nickname, random.choice(random_words))
+            br.learn(msg)
+
             #Format
-            #text = msg.decode('utf-8')
             text = msg
 
             #Create reply from word
             reply = br.reply(text, loop_ms=1500).encode('utf-8')
 
-            reply = reply.replace(self.nickname, '')
+            reply = reply.replace(self.nickname, random.choice(random_words))
 
-            dc = random.random()
-
-            if dc > 0.5:
-                self.msg(channel, "%s: " % user + reply)
-            else:
-                self.msg(channel, reply)
+            self.msg(channel, "%s, " % user + reply)
 
         if msg == "!chatterbot":
             #Checks what the status of the chttb variable is and provides it in place of {st}
@@ -415,7 +421,11 @@ class ThorBot(irc.IRCClient):
             wlist = msg.split(' ')
             targ = itemgetter(1)(wlist)
 
-            if targ in illegal_channels[:]:
+            if "," in targ:
+                msg = "I know that trick, {u}. I won't fall for it.".format(u=user)
+                self.msg(channel, msg)
+
+            elif targ in illegal_channels[:]:
                 #If target is found in illegal channels list,
                 #cancels operation and apologises in a polite manner.
 
