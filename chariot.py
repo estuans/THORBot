@@ -9,24 +9,27 @@ import ConfigParser
 from twisted.internet import protocol, reactor
 from twisted.python import log
 
-from core.thor import ThorBot
+from thor import ThorBot
 
 
-cfg = ConfigParser.RawConfigParser()
-cfg.read("hammer.ini")
-server = cfg.get('Connection', 'Server')
-port = cfg.getint('Connection', 'Port')
-__channels = cfg.get('Connection', 'Channels')
-logfile = cfg.get('Connection', 'Logfile')
+cfg = ConfigParser.RawConfigParser(allow_no_value=True)
+cfg.read("magni.ini")
+
+#TODO Summon Cthulhu and figure out why he broke my code
+#server = cfg.get('Connection', 'Server')
+#port = cfg.getint('Connection', 'Port')
+#__channels = cfg.get('Connection', 'Channels')
+
+__channels = '#winning'
+server = 'sinclair.irc.arloria.net'
+port = int(6667)
 
 
 class ThorBotFactory(protocol.ClientFactory):
     protocol = ThorBot
 
-    def __init__(self, channel, filename):
+    def __init__(self, channel):
         self.channel = channel
-        self.filename = filename
-        self.logfile = logfile
 
     def buildProtocol(self, addr):
         p = ThorBot()
@@ -44,5 +47,5 @@ class ThorBotFactory(protocol.ClientFactory):
 
 if __name__ == '__main__':
     log.startLogging(sys.stdout)
-    reactor.connectTCP(server, port, ThorBotFactory(__channels, logfile))
+    reactor.connectTCP(server, port, ThorBotFactory(__channels))
     reactor.run()

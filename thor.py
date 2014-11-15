@@ -9,7 +9,6 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 #INTERNAL Imports
-from modules.logger import Bin
 from modules import goslate
 
 #SYS Imports
@@ -18,6 +17,7 @@ import random
 
 #OTHER Imports
 import ConfigParser
+import json
 import urllib2
 import ctypes
 from operator import itemgetter
@@ -40,7 +40,7 @@ ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 #Config parser. Could be replaced in the future?
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
-cfg.read("hammer.ini")
+cfg.read("magni.ini")
 
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
@@ -48,16 +48,22 @@ cfg.read("hammer.ini")
 
 illegal_channels = ['#jacoders']
 
+
 class ThorBot(irc.IRCClient):
     """
-    Primary IRC class. Controls just about everything that isn't a module. Logging is handled by logger.py.
+    Primary IRC class. Controls just about everything that isn't a module.
     Below you'll find a bunch of options that are handled by hammer.ini.
     """
 
     def __init__(self):
-        nickname = cfg.get('Bot Settings', 'Nickname')
-        password = cfg.get('Bot Settings', 'NickPass')
-        realname = "THORBot @ VALHALLA"
+        #TODO Cthulhu must answer for his crimes against my code!
+        #nickname = cfg.get('Bot Settings', 'Nickname')
+        #password = cfg.get('Bot Settings', 'NickPass')
+        #realname = "THORBot @ VALHALLA"
+        nickname = 'Magni'
+        password = ''
+        realname = 'Magni[THORBOT] @ VALHALLA'
+
         self.realname = realname
         self.nickname = nickname
         self.password = password
@@ -66,17 +72,12 @@ class ThorBot(irc.IRCClient):
     def connectionMade(self):
         #First we connect
         irc.IRCClient.connectionMade(self)
-        self.logger = Bin(open(self.factory.filename, "a"))
-        self.logger.log("[CONNECTED @ %s]" % time.asctime(time.localtime(time.time())))
 
     def connectionLost(self, reason):
         irc.IRCClient.connectionLost(self, reason)
-        self.logger.log("[DISCONNECTED @ %s]" % time.asctime(time.localtime(time.time())))
-        self.logger.close()
 
     def irc_ERR_ERRONEUSNICKNAME(self, prefix, params):
         print "irc_ERR_ERRONEUSNICKNAME called"
-        self.logger.log("[%s]Erroneus Nickname" % time.asctime(time.localtime(time.time())))
 
     def irc_ERR_PASSWDMISMATCH(self, prefix, params):
         print "!!!INCORRECT PASSWORD!!!\n Check hammer.ini for the NICKPASS parameter"
@@ -92,7 +93,6 @@ class ThorBot(irc.IRCClient):
     def joined(self, channel):
         #Called when joining a channel
         print "Joined %s" % channel
-        self.logger.log("[JOINED %s]" % channel)
         self.sendLine("MODE {nickname} {mode}".format(nickname=self.nickname, mode="+B"))
 
     def userJoined(self, user, channel):
@@ -104,23 +104,16 @@ class ThorBot(irc.IRCClient):
         if chance >= 0.2:
             print "Welcomed %s. Chance: %s" % (user, chance)
             msg = "Welcome to %s, %s" % (channel, user)
-            self.logger.log(msg)
             self.msg(channel, msg)
         if chance <= 0.2:
             print "Chance:", chance
-        self.logger.log("%s has joined %s" % (user, channel))
-
-    def userLeft(self, user, channel):
-        self.logger.log("%s has left %s channel. Bubye." % (user, channel))
 
     def kickedFrom(self, channel, kicker, message):
-        self.logger.log("%s kicked me from %s, the nerve!" % (kicker, channel))
         self.join(channel)
         msg = "How fucking dare you, {ki}".format(ki=kicker)
         self.msg(channel, msg)
 
     def userKicked(self, kickee, channel, kicker, message):
-        self.logger.log("{us} was kicked from {ch} by {ki}".format(us=kickee, ch=channel, ki=kicker))
         msg = "{us} must have pissed {ki} off!".format(us=kickee, ki=kicker)
         self.msg(channel, msg)
 
@@ -136,7 +129,6 @@ class ThorBot(irc.IRCClient):
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
-        self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
 
         #Globals
         global chttb
@@ -343,7 +335,6 @@ class ThorBot(irc.IRCClient):
             #If called, states owner and nickname
             owner = cfg.get('Users', 'Owner')
             msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
-            self.logger.log("[{c}] {u}: {m}".format(c=channel, u=user, m=msg))
             self.msg(channel, msg)
 
         if msg == "!disconnect" and user == (owner or admins):
@@ -351,19 +342,16 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
             time.sleep(2)
             self.quit(message="Disconnected per request")
-            self.logger.log("Disconnected per request of %s" % user)
             print "Disconnected."
 
     def action(self, user, channel, message):
         user = user.split('!', 1)[0]
-        self.logger.log("[{c}] * {u} {m}".format(c=channel, u=user, m=message))
 
     #IRC CALLBACKS
 
     def irc_NICK(self, prefix, params):
         old_nick = prefix.split('!')[0]
         new_nick = params[0]
-        self.logger.log("{on} has changed nick to {nn}".format(on=old_nick, nn=new_nick))
 
     def alterCollidedNick(self, nickname):
         return nickname + 'Clone'
