@@ -17,10 +17,13 @@ import random
 
 #OTHER Imports
 import ConfigParser
-import json
-import urllib2
 import ctypes
 from operator import itemgetter
+
+#HTTP Handlers
+import json
+import urllib2
+import requests
 
 #Version Information
 
@@ -41,6 +44,8 @@ ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("magni.ini")
+
+owner = 'Serio'
 
 #Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
@@ -135,11 +140,6 @@ class ThorBot(irc.IRCClient):
         global randrep
 
         #TODO reformat the code to render the below variables redundant
-        owner = cfg.get('Users', 'Owner')
-        admins = cfg.get('Users', 'Admins')
-        ignored = cfg.get('Users', 'Ignored')
-        gglapi = cfg.get('API', 'Google')
-        ggid = cfg.get('API', 'Google ID')
 
         #URL Fetchers & Integrated Utilities
 
@@ -179,23 +179,6 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, reply.encode('UTF-8'))
 
-        if msg.startswith("!g"):
-            #Returns the first result off the page
-
-            wlist = msg.split(' ')
-
-            append = itemgetter(slice(1, None))(wlist)
-            append = '+'.join(append)
-
-            url = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=1" % (gglapi, ggid, append)
-            metdat = urllib2.urlopen(url).read()
-            parsdat = json.loads(metdat)
-            items = parsdat['items']
-            for result in items:
-                link = result['link']
-
-                self.msg(channel, link.encode('UTF-8'))
-
         if msg.startswith("!qdb"):
             #Fetches the quote with the assigned number from the ArloriaNET Quote Database
 
@@ -209,89 +192,14 @@ class ThorBot(irc.IRCClient):
         if msg == "!joke":
             #Fetches an ol' fashioned Chuck Norris joke and prints it
 
-            rq = urllib2.Request("http://api.icndb.com/jokes/random?")
-            joke = urllib2.urlopen(rq).read()
-            data = json.loads(joke)
-            msg = data['value']['joke']
-            msg = msg.replace('&quot;', '"')
+            r = requests.get("http://api.icndb.com/jokes/random?")
+            rj = r.json()
+            msg = rj['value']['joke']
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
         #Logging Things
 
         #Misc
-        if msg.startswith("!s ") and user == ignored:
-            msg == "No."
-            self.msg(channel, msg)
-
-        if msg.startswith("!s ") and user != ignored:
-            #Sends message to target channel
-
-            wlist = msg.split(' ')
-            targ = itemgetter(1)(wlist)
-
-            #Slice 'n dice the message we want to send
-            tsay = itemgetter(slice(2, None))(wlist)
-
-            #Piece it back together
-            tsay = ' '.join(tsay)
-
-            self.sendLine('PRIVMSG {targ} {tsay}'.format(targ=targ, tsay=tsay))
-
-        if msg.startswith("!inv"):
-            #Invites target user into present channel.
-            #May be expanded upon in the future.
-
-            invchan = channel
-            wlist = msg.split(' ')
-            targ = itemgetter(1)(wlist)
-
-            self.sendLine('INVITE {t} {c}'.format(c=invchan, t=targ))
-
-            pending = "Inviting {t} into {c}".format(t=targ, c=channel)
-
-            self.msg(channel, pending)
-
-        if msg.startswith("!j "):
-
-            #Joins designated channel.
-
-            wlist = msg.split(' ')
-            targ = itemgetter(1)(wlist)
-
-            if targ in illegal_channels[:]:
-                #If target is found in illegal channels list,
-                #cancels operation and apologises in a polite manner.
-
-                msg = "Sorry, {u}, I'm too sane to join {t}".format(u=user, t=targ)
-                self.msg(channel, msg)
-
-            else:
-                #Checks target against illegal channels list.
-                #If not present, will join the channel.
-
-                self.sendLine('join {c}'.format(c=targ))
-                msg = "Joining {c}".format(c=targ)
-
-                self.msg(channel, msg)
-
-        if msg.startswith("!leave "):
-            #Sends a part message to the server,
-            #leaving the designated channel(even if not sent from aforementioned channel)
-
-            wlist = msg.split(' ')
-            targ = itemgetter(1)(wlist)
-
-            msg = "Leaving {c}".format(c=targ)
-            self.msg(channel, msg)
-
-            self.sendLine('part {c}'.format(c=targ))
-
-        if msg.startswith("!nick ") and user == owner:
-            text = msg.split()
-            new_nick = itemgetter(1)(text)
-            self.nickname = new_nick
-
-            self.sendLine('nick {c}'.format(c=new_nick))
 
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
@@ -309,26 +217,10 @@ class ThorBot(irc.IRCClient):
                   ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number]"
             self.msg(channel, msg)
 
-        if msg == "!rejoin":
-            #Rejoins channel
-            self.leave(channel, reason="Cycling")
-            time.sleep(1)
-            self.join(channel)
-            time.sleep(1)
-            msg = "Rejoined successfully"
-            self.msg(channel, msg)
-
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version | {vnam} | {vnum} | {venv}".format(vnam=versionName, vnum=versionNumber,
                                                                          venv=versionEnv)
-            self.msg(channel, msg)
-
-        if msg == "!rickroll":
-            #... It was a silly idea, okay?
-            msg = "Never gonna give you up,\nNever gonna let you down,\n" \
-                  "Never gonna run around and desert you.\n" \
-                  "Never gonna make you cry,\nNever gonna say goodbye,\nNever gonna tell a lie and hurt you.\n"
             self.msg(channel, msg)
 
         if msg.startswith("!info"):
@@ -337,7 +229,7 @@ class ThorBot(irc.IRCClient):
             msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
             self.msg(channel, msg)
 
-        if msg == "!disconnect" and user == (owner or admins):
+        if msg == "!disconnect" and user == (owner):
             msg = "Severing connection..."
             self.msg(channel, msg)
             time.sleep(2)
