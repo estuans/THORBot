@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+
 '''
 THOR connects to an IRC network, joins a channel, and keeps a log of everything that goes on.
 WolframAlpha integration will come later.
@@ -21,8 +22,6 @@ import ctypes
 from operator import itemgetter
 
 #HTTP Handlers
-import json
-import urllib2
 import requests
 
 #Version Information
@@ -46,13 +45,6 @@ cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("magni.ini")
 
 owner = 'Serio'
-
-#Globals(These are ABSOLUTELY necessary to declare here, otherwise the code won't work.
-#Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
-#TODO ... Clean these up. Seriously. Move them to appropriate locations in ThorBot.
-
-illegal_channels = ['#jacoders']
-
 
 class ThorBot(irc.IRCClient):
     """
@@ -113,33 +105,8 @@ class ThorBot(irc.IRCClient):
         if chance <= 0.2:
             print "Chance:", chance
 
-    def kickedFrom(self, channel, kicker, message):
-        self.join(channel)
-        msg = "How fucking dare you, {ki}".format(ki=kicker)
-        self.msg(channel, msg)
-
-    def userKicked(self, kickee, channel, kicker, message):
-        msg = "{us} must have pissed {ki} off!".format(us=kickee, ki=kicker)
-        self.msg(channel, msg)
-
-    def irc_unknown(self, prefix, command, params):
-        #TODO send an error message describing why I /can't/ join the channel
-
-        if command == "INVITE":
-            if params[1] in illegal_channels[:]:
-                print "INVITED BUT NOT ALLOWED TO JOIN"
-
-            else:
-                self.join(params[1])
-
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
-
-        #Globals
-        global chttb
-        global randrep
-
-        #TODO reformat the code to render the below variables redundant
 
         #URL Fetchers & Integrated Utilities
 
