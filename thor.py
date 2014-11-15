@@ -10,22 +10,17 @@ from twisted.words.protocols import irc
 
 #INTERNAL Imports
 from modules.logger import Bin
-from modules import perm
 from modules import goslate
 
 #SYS Imports
 import time
 import random
-import re
 
 #OTHER Imports
 import ConfigParser
 import urllib2
-import json
-import shelve
 import ctypes
 from operator import itemgetter
-from cobe.brain import Brain
 
 #Version Information
 
@@ -36,7 +31,7 @@ from cobe.brain import Brain
 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 1))
 
-versionName = "DreadFish"
+versionName = "Magni"
 versionNumber = "{g}".format(g=gobblenumber)
 versionEnv = "Python 2.7.3"
 
@@ -51,16 +46,7 @@ cfg.read("hammer.ini")
 #Don't sue me. I'm just making sure it won't throw syntax warnings at me.)
 #TODO ... Clean these up. Seriously. Move them to appropriate locations in ThorBot.
 
-p = perm.Permissions
-chttb = True
-randrep = False
-
-d = shelve.open("persdata")
-
-br = Brain("databases/valhalla.brain")
-
 illegal_channels = ['#jacoders']
-
 
 class ThorBot(irc.IRCClient):
     """
@@ -160,108 +146,8 @@ class ThorBot(irc.IRCClient):
         owner = cfg.get('Users', 'Owner')
         admins = cfg.get('Users', 'Admins')
         ignored = cfg.get('Users', 'Ignored')
-        chatallowed = cfg.get('Channels', 'Allowed')
         gglapi = cfg.get('API', 'Google')
         ggid = cfg.get('API', 'Google ID')
-
-        #COBE Integration starts here!
-        #I had to study the brain of the COBE bot example, but
-        #managed to conjure up a way to better format messages.
-
-        #TEMP
-        if msg == "!hs":
-            msg = "on"
-            self.msg("hosterv", msg)
-
-        if msg:
-            #Format
-            msg = re.sub('<\S>\s', '', msg)
-            text = msg.decode('utf-8')
-
-            #Learn text
-            br.learn(text)
-
-        if msg and randrep is True and user != ignored:
-            msg = re.sub('<\S>\s', '', msg)
-            text = msg.decode('utf-8')
-
-            br.learn(text)
-
-            chance = random.random()
-            if chance > 0.7:
-                text.split()
-                text = random.choice(text) + " " + random.choice(text)
-                reply = br.reply(text).encode('utf-8')
-
-                self.msg(channel, reply)
-
-        if self.nickname in msg and chttb is True:
-            #This new implementation of COBE ensures an optimized
-            #output while decreasing the amount of code involved.
-            #Instead of select an entire, unprocessed line of text
-            #this new implementation substracts the parts that aren't
-            #necessary to the whole, and uses only a few words
-            #to generate a reply, creating a much more unique sentence.
-
-            #Strip pasted nicknames
-            msg = re.sub('<\S>\s', '', msg)
-
-            #Format
-            text = msg.decode('utf-8')
-
-            #Learn text
-            br.learn(text)
-
-            #Split text into a list
-            origin = text.split()
-
-            #Select random word from list
-            text = random.choice(origin)
-            t2 = random.choice(origin)
-            text = text + t2
-
-            text = ' '.join(text)
-
-            #Create reply from word
-            reply = br.reply(text, loop_ms=1500).encode('utf-8')
-
-            reply = re.sub('\s[:.,!?]\s', '', reply)
-            reply = reply.replace(self.nickname, '')
-
-            dc = random.random()
-
-            if dc > 0.5:
-                self.msg(channel, "%s: " % user + reply)
-            else:
-                self.msg(channel, reply)
-
-        if msg == "!chatterbot":
-            #Checks what the status of the chttb variable is and provides it in place of {st}
-
-            msg = "Chatterbot variable status: {st}".format(st=chttb)
-            self.msg(channel, msg)
-
-        if msg == "!chatterbot off" and user == owner:
-            #Checks if chttb is true, and if it is, changes it to False.
-
-            if chttb is True:
-                chttb = False
-                msg = "Chatterbot replies turned off."
-                self.msg(channel, msg)
-            else:
-                msg = "Chatterbot replies already off."
-                self.msg(channel, msg)
-
-        if msg == "!chatterbot on" and user == owner:
-            #Inverse of the above
-
-            if chttb is False:
-                chttb = True
-                msg = "Chatterbot replies turned on."
-                self.msg(channel, msg)
-            else:
-                msg = "Chatterbot replies already on."
-                self.msg(channel, msg)
 
         #URL Fetchers & Integrated Utilities
 
@@ -339,27 +225,6 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
         #Logging Things
-
-        #Database things
-        #TODO render these redundant by automating the perm.py module
-
-        if msg == "!chv {user}".format(user=user):
-            p.chckvoice(user)
-
-        if msg == "!v {user}".format(user=user):
-            p.permvoice(user, channel)
-            msg = "Voiced {user}".format(user=user)
-            self.msg(channel, msg)
-
-        if msg == "!h {user}".format(user=user):
-            p.permhop(user, channel)
-            msg = "Half-opped {user}".format(user=user)
-            self.msg(channel, msg)
-
-        if msg == "!o {user}".format(user=user):
-            p.permop(user, channel)
-            msg = "Opped {user}".format(user=user)
-            self.msg(channel, msg)
 
         #Misc
         if msg.startswith("!s ") and user == ignored:
@@ -451,27 +316,6 @@ class ThorBot(irc.IRCClient):
                   "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]" \
                   ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number]"
             self.msg(channel, msg)
-
-        if msg == "!randrep on" and randrep is False and user == owner:
-            #TODO revise the random replies to fit with the new COBE implementation
-            msg = "Random replies turned on."
-            self.msg(channel, msg)
-            randrep = True
-
-        if msg == "!randrep off" and randrep is True and user == owner:
-            #TODO revise the random replies to fit with the new COBE implementation
-            msg = "Random replies turned off."
-            self.msg(channel, msg)
-            randrep = False
-
-        if msg == "!randrep":
-            #TODO revise the random replies to fit with the new COBE implementation
-            if randrep is True:
-                msg = "Random replies currently on."
-                self.msg(channel, msg)
-            if randrep is False:
-                msg = "Random replies currently off."
-                self.msg(channel, msg)
 
         if msg == "!rejoin":
             #Rejoins channel
