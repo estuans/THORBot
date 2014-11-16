@@ -19,7 +19,6 @@ Dependencies
 To speed up things and streamline the code, THORBot relies on a few dependencies to be present.
 
 - Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords
-- COBE - https://github.com/pteichman/cobe/wiki
 - feedparser
 - requests
 
