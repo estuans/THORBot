@@ -18,6 +18,7 @@ import random
 
 #OTHER Imports
 import ConfigParser
+import feedparser
 import ctypes
 from operator import itemgetter
 
@@ -43,8 +44,6 @@ ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("magni.ini")
-
-owner = 'Serio'
 
 class ThorBot(irc.IRCClient):
     """
@@ -109,6 +108,15 @@ class ThorBot(irc.IRCClient):
         user = user.split('!', 1)[0]
 
         #URL Fetchers & Integrated Utilities
+
+        if msg.startswith("!bbc"):
+            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
+            title = fd.entries[0].title
+            description = fd.entries[0].description
+            link = fd.entries[0].link
+            fd = "%s - %s - Read More: %s" % (title, description, link)
+
+            self.msg(channel, fd.encode('UTF-8'))
 
         if msg.startswith("!t "):
             #Translates the source language into the target language
@@ -179,9 +187,9 @@ class ThorBot(irc.IRCClient):
         if msg == "!help":
             #TODO find a better way to list commands. Perhaps in a private message?
 
-            msg = "Commands: !dance, !j [channel], !leave [channel], !disconnect, !rickroll, !joke, " \
-                  "!chatterbot [on/off], !rejoin, !version, !info, !inv [user], !s [channel] [message]" \
-                  ", !t [source lang] [target lang], !dt [foreign text], !g [search term], !qdb [number]"
+            msg = "Commands: !dance, !disconnect, !joke, " \
+                  "!version, !info," \
+                  " !t [source lang] [target lang], !dt [foreign text], !qdb [number]"
             self.msg(channel, msg)
 
         if msg == "!version":
@@ -196,7 +204,7 @@ class ThorBot(irc.IRCClient):
             msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
             self.msg(channel, msg)
 
-        if msg == "!disconnect" and user == (owner):
+        if msg == "!disconnect" and user == str('Serio'):
             msg = "Severing connection..."
             self.msg(channel, msg)
             time.sleep(2)
