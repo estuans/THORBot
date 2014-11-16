@@ -107,14 +107,46 @@ class ThorBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
 
+        #Help utilities
+
+        if msg.startswith("!help bbc"):
+            msg = "Retrieves the latest feeds from BBC News and posts them. Add 'x' (up to three times) to get more news"
+            self.msg(channel, msg)
+
         #URL Fetchers & Integrated Utilities
 
-        if msg.startswith("!bbc"):
+        if msg == "!bbc":
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
-            title = fd.entries[0].title
             description = fd.entries[0].description
             link = fd.entries[0].link
-            fd = "%s - %s - Read More: %s" % (title, description, link)
+            fd = "%s - Read More: %s" % (description, link)
+
+            self.msg(channel, fd.encode('UTF-8'))
+
+        if msg == "!bbc +":
+            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
+            description = fd.entries[1].description
+            link = fd.entries[1].link
+            fd = "%s - Read More: %s" % (description, link)
+            self.lineRate = 2
+
+            self.msg(channel, fd.encode('UTF-8'))
+
+        if msg == "!bbc ++":
+            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
+            description = fd.entries[2].description
+            link = fd.entries[2].link
+            fd = "%s - Read More: %s" % (description, link)
+            self.lineRate = 2.5
+
+            self.msg(channel, fd.encode('UTF-8'))
+
+        if msg == "!bbc +++":
+            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
+            description = fd.entries[3].description
+            link = fd.entries[3].link
+            fd = "%s - Read More: %s" % (description, link)
+            self.lineRate = 3
 
             self.msg(channel, fd.encode('UTF-8'))
 
@@ -165,7 +197,7 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!joke":
-            #Fetches an ol' fashioned Chuck Norris joke and prints it
+            #I hate this function. Why do I keep it?
 
             r = requests.get("http://api.icndb.com/jokes/random?")
             rj = r.json()

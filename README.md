@@ -6,29 +6,12 @@ An IRC bot under development.
 Currently supports a variety of commands, with more modules on the drawing board.
 
 
-
-
-Connecting
+MAGNI
 ======
 
-Before you can start using THORBot, you need to configure a few settings in the configuration file provided with the bot. You'll find these settings in the "hammer.ini" file, and most revisions should include a clean file for you to use. Everything from the nickname, nickserver pass, to the channels it connects to can be configured from there.
-
-
-
-Usage
-======
-
-As of the current revision, the bot isn't set up to accept more than a !leave [channel] command. There are certain
-commands that will print a message to the console for debugging, but mostly it just logs and leaves.
-
-Todo
-======
-
-- Improve the way THORBot handles messages being sent to valhalla.brain.
-- Add additional support for Google API.
-- Add support for WolframAlpha API.
-- Work on the permissions database and how they're handled.
-
+In Norse mythology, Magni was one of the two sons of Thor. This Magni, too, is a "son" of Thor.
+He lacks many of the defining features of Thor, such as the chatterbot functionality and certain other
+API integrations, but focuses on a tailored experience.
 
 Dependencies
 ======
@@ -37,6 +20,8 @@ To speed up things and streamline the code, THORBot relies on a few dependencies
 
 - Twisted - http://twistedmatrix.com/trac/wiki/TwistedWords
 - COBE - https://github.com/pteichman/cobe/wiki
+- feedparser
+- requests
 
 Attribution
 =======
