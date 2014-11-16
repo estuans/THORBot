@@ -6,10 +6,10 @@ THOR connects to an IRC network, joins a channel, and keeps a log of everything 
 WolframAlpha integration will come later.
 '''
 
-#TWISTED Imports
+# TWISTED Imports
 from twisted.words.protocols import irc
 
-#INTERNAL Imports
+# INTERNAL Imports
 from modules import goslate
 
 #SYS Imports
@@ -44,6 +44,7 @@ ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("magni.ini")
+
 
 class ThorBot(irc.IRCClient):
     """
@@ -107,10 +108,18 @@ class ThorBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
 
+        #Dice Roll
+
+        if msg == "!roll":
+            dice = random.randint(1, 100)
+            dice = str(dice)
+
+            self.msg(channel, dice)
+
         #Help utilities
 
         if msg.startswith("!help bbc"):
-            msg = "Retrieves the latest feeds from BBC News and posts them. Add 'x' (up to three times) to get more news"
+            msg = "Retrieves the latest feeds from BBC News and posts them. Add '+' (up to three times) to get more news"
             self.msg(channel, msg)
 
         #URL Fetchers & Integrated Utilities
@@ -208,6 +217,14 @@ class ThorBot(irc.IRCClient):
 
         #Misc
 
+        if msg.startswith('!pornhub'):
+            msg = "%s, I'm not that kind of man." % user
+            self.msg(channel, msg)
+
+        if msg.startswith('!pronhub'):
+            msg = "Did you mean !pornhub?"
+            self.msg(channel, msg)
+
         if msg == "!dance":
             msg = "<(o.o<)\r\n" \
                   "(>o.o)>\r\n" \
@@ -227,7 +244,7 @@ class ThorBot(irc.IRCClient):
         if msg == "!version":
             #Passes version and version number to channel
             msg = "Version | {vnam} | {vnum} | {venv}".format(vnam=versionName, vnum=versionNumber,
-                                                                         venv=versionEnv)
+                                                              venv=versionEnv)
             self.msg(channel, msg)
 
         if msg.startswith("!info"):
