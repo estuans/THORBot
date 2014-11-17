@@ -14,6 +14,7 @@ from modules import goslate
 
 #SYS Imports
 import time
+from twisted.protocols.wire import Who
 import random
 
 #OTHER Imports
@@ -96,17 +97,31 @@ class ThorBot(irc.IRCClient):
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
 
-        chance = random.random()
-
-        if chance >= 0.2:
-            print "Welcomed %s. Chance: %s" % (user, chance)
-            msg = "Welcome to %s, %s" % (channel, user)
-            self.msg(channel, msg)
-        if chance <= 0.2:
-            print "Chance:", chance
-
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
+
+        #IntTests
+
+        if msg == "!CalTe *":
+            a = random.randint(1, 9999999)
+            b = random.randint(1, 9999999)
+            c = a * b
+            msg = "%s * %s = %s" % (a, b, c)
+            self.msg(channel, msg)
+
+        if msg == "!CalTe /":
+            a = random.randint(1, 9999999)
+            b = random.randint(1, 9999999)
+            c = a / b
+            msg = "%s / %s = %s" % (a, b, c)
+            self.msg(channel, msg)
+
+        if msg == "!CalTe +":
+            a = random.randint(1, 9999999)
+            b = random.randint(1, 9999999)
+            c = a + b
+            msg = "%s + %s = %s" % (a, b, c)
+            self.msg(channel, msg)
 
         #Dice Roll
 
@@ -120,6 +135,10 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!help bbc"):
             msg = "Retrieves the latest feeds from BBC News and posts them. Add '+' (up to three times) to get more news"
+            self.msg(channel, msg)
+
+        if msg.startswith("!help roll"):
+            msg = "'Rolls' a number between 1 and 100."
             self.msg(channel, msg)
 
         #URL Fetchers & Integrated Utilities
@@ -234,12 +253,9 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
         if msg == "!help":
-            #TODO find a better way to list commands. Perhaps in a private message?
-
-            msg = "Commands: !dance, !disconnect, !joke, " \
-                  "!version, !info," \
-                  " !t [source lang] [target lang], !dt [foreign text], !qdb [number]"
-            self.msg(channel, msg)
+            msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
+                  "text], !qdb [number]"
+            self.notice(user, msg)
 
         if msg == "!version":
             #Passes version and version number to channel
@@ -260,14 +276,7 @@ class ThorBot(irc.IRCClient):
             self.quit(message="Disconnected per request")
             print "Disconnected."
 
-    def action(self, user, channel, message):
-        user = user.split('!', 1)[0]
-
     #IRC CALLBACKS
-
-    def irc_NICK(self, prefix, params):
-        old_nick = prefix.split('!')[0]
-        new_nick = params[0]
 
     def alterCollidedNick(self, nickname):
         return nickname + 'Clone'
