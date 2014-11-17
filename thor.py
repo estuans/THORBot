@@ -141,13 +141,32 @@ class ThorBot(irc.IRCClient):
             msg = "'Rolls' a number between 1 and 100."
             self.msg(channel, msg)
 
+        if msg.startswith("!help me"):
+            msg = "I'm sorry, I can't help you."
+            self.msg(channel, msg)
+
+        if msg.startswith("!help t"):
+            msg = "Takes two arguments; A and B. Argument A will be the source language, argument B will be the target" \
+                  " language. Languages follow ISO 639-1. (See: http://goo.gl/nVuDQJ )"
+            self.msg(channel, msg)
+
+        if msg.startswith("!help dt"):
+            msg = "Detects the language the sentence is written in and returns a translation in English. No language" \
+                  " codes are required."
+            self.msg(channel, msg)
+
+        if msg.startswith("!help qdb"):
+            msg = "Fetches the quote with the number requested. Lazily coded."
+            self.msg(channel, msg)
+
+
         #URL Fetchers & Integrated Utilities
 
         if msg == "!bbc":
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
             description = fd.entries[0].description
             link = fd.entries[0].link
-            fd = "%s - Read More: %s" % (description, link)
+            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
 
             self.msg(channel, fd.encode('UTF-8'))
 
@@ -155,7 +174,7 @@ class ThorBot(irc.IRCClient):
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
             description = fd.entries[1].description
             link = fd.entries[1].link
-            fd = "%s - Read More: %s" % (description, link)
+            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
             self.lineRate = 2
 
             self.msg(channel, fd.encode('UTF-8'))
@@ -164,7 +183,7 @@ class ThorBot(irc.IRCClient):
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
             description = fd.entries[2].description
             link = fd.entries[2].link
-            fd = "%s - Read More: %s" % (description, link)
+            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
             self.lineRate = 2.5
 
             self.msg(channel, fd.encode('UTF-8'))
@@ -173,7 +192,7 @@ class ThorBot(irc.IRCClient):
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
             description = fd.entries[3].description
             link = fd.entries[3].link
-            fd = "%s - Read More: %s" % (description, link)
+            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
             self.lineRate = 3
 
             self.msg(channel, fd.encode('UTF-8'))
@@ -215,7 +234,8 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, reply.encode('UTF-8'))
 
         if msg.startswith("!qdb"):
-            #Fetches the quote with the assigned number from the ArloriaNET Quote Database
+            #This is lazy. It's unorthodox. Why do I use it? Because it works.
+            #99.98% of the time, anyway.
 
             wlist = msg.split(' ')
 
@@ -232,12 +252,10 @@ class ThorBot(irc.IRCClient):
             msg = rj['value']['joke']
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
-        #Logging Things
-
         #Misc
 
         if msg.startswith('!pornhub'):
-            msg = "%s, I'm not that kind of man." % user
+            msg = "%s, I'm not that kind of bot." % user
             self.msg(channel, msg)
 
         if msg.startswith('!pronhub'):
@@ -250,7 +268,7 @@ class ThorBot(irc.IRCClient):
                   "^(o.o)^\r\n" \
                   "v(o.o)v\r\n" \
                   "<(o.o)>\r\n"
-            self.msg(channel, msg)
+            self.notice(channel, msg)
 
         if msg == "!help":
             msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
@@ -268,13 +286,6 @@ class ThorBot(irc.IRCClient):
             owner = cfg.get('Users', 'Owner')
             msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
             self.msg(channel, msg)
-
-        if msg == "!disconnect" and user == str('Serio'):
-            msg = "Severing connection..."
-            self.msg(channel, msg)
-            time.sleep(2)
-            self.quit(message="Disconnected per request")
-            print "Disconnected."
 
     #IRC CALLBACKS
 
