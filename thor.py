@@ -8,13 +8,14 @@ WolframAlpha integration will come later.
 
 # TWISTED Imports
 from twisted.words.protocols import irc
+import twisted.words
+
+
 
 # INTERNAL Imports
 from modules import goslate
 
 #SYS Imports
-import time
-from twisted.protocols.wire import Who
 import random
 
 #OTHER Imports
@@ -32,11 +33,8 @@ import requests
 #to the code itself, and were merely added to poke fun at the sometimes
 #arbitrary nature of version numbers in software today.
 
-alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-gobblenumber = random.choice(alphabet) + str(random.randrange(0, 2000)) + "." + str(random.randint(0, 1))
-
 versionName = "Magni"
-versionNumber = "{g}".format(g=gobblenumber)
+versionNumber = "18/11/2014 GMT-2-0305 | MAGNI"
 versionEnv = "Python 2.7.3"
 
 ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
@@ -81,6 +79,8 @@ class ThorBot(irc.IRCClient):
         print "!!!INCORRECT PASSWORD!!!\n Check hammer.ini for the NICKPASS parameter"
         return
 
+    #TODO Rectify the lack of irc_RPC responses. It's an outrage.
+
     #EVENTS
 
     def signedOn(self):
@@ -89,6 +89,8 @@ class ThorBot(irc.IRCClient):
         self.join(self.factory.channel)
 
     def joined(self, channel):
+        #TODO Track their names?
+
         #Called when joining a channel
         print "Joined %s" % channel
         self.sendLine("MODE {nickname} {mode}".format(nickname=self.nickname, mode="+B"))
@@ -100,28 +102,64 @@ class ThorBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
 
-        #IntTests
+        #Calculator
 
-        if msg == "!CalTe *":
-            a = random.randint(1, 9999999)
-            b = random.randint(1, 9999999)
-            c = a * b
-            msg = "%s * %s = %s" % (a, b, c)
-            self.msg(channel, msg)
+        #TODO Add a !calc command that works. Is that too much to ask? (SPOILER: Yes. Yes it is.)
 
-        if msg == "!CalTe /":
-            a = random.randint(1, 9999999)
-            b = random.randint(1, 9999999)
-            c = a / b
-            msg = "%s / %s = %s" % (a, b, c)
-            self.msg(channel, msg)
+        if msg.startswith("!calc" or "!Calc"):
 
-        if msg == "!CalTe +":
-            a = random.randint(1, 9999999)
-            b = random.randint(1, 9999999)
-            c = a + b
-            msg = "%s + %s = %s" % (a, b, c)
-            self.msg(channel, msg)
+            calclist = msg.split(' ')
+
+            #Fetch arguments
+
+            calc1 = itemgetter(1)(calclist)
+            opera = itemgetter(2)(calclist)
+            calc2 = itemgetter(3)(calclist)
+
+            #Translate to int
+            calc1 = int(calc1)
+            calc2 = int(calc2)
+
+            #Check if Operator is valid
+            valid = ['+', '/', '-', '*']
+
+            if calc1 == int(calc1):
+                pass
+            if calc1 != int(calc1):
+                msg = "ERROR: ARG1 INCORRECT"
+                self.msg(channel, msg)
+
+            if opera in valid:
+                pass
+            if opera not in valid:
+                msg = "ERROR: OPERATOR INCORRECT"
+                self.msg(channel, msg)
+
+            if calc2 == int(calc2):
+                pass
+            if calc2 != int(calc2):
+                msg = "ERROR: ARG2 INCORRECT"
+                self.msg(channel, msg)
+
+            if opera is '+':
+                result = calc1 + calc2
+                reply = "%s + %s = %s" % (calc1, calc2, result)
+                self.msg(channel, reply)
+
+            if opera is '/':
+                result = calc1 / calc2
+                reply = "%s / %s = %s" % (calc1, calc2, result)
+                self.msg(channel, reply)
+
+            if opera == '-':
+                result = calc1 - calc2
+                reply = "%s - %s = %s" % (calc1, calc2, result)
+                self.msg(channel, reply)
+
+            if opera == '*':
+                result = calc1 * calc2
+                reply = "%s * %s = %s" % (calc1, calc2, result)
+                self.msg(channel, reply)
 
         #Dice Roll
 
@@ -134,7 +172,8 @@ class ThorBot(irc.IRCClient):
         #Help utilities
 
         if msg.startswith("!help bbc"):
-            msg = "Retrieves the latest feeds from BBC News and posts them. Add '+' (up to three times) to get more news"
+            msg = "Retrieves the most recent news article from BBC News and posts a summary. Use !bbc random for a" \
+                  "random, recent news story. "
             self.msg(channel, msg)
 
         if msg.startswith("!help roll"):
@@ -159,41 +198,23 @@ class ThorBot(irc.IRCClient):
             msg = "Fetches the quote with the number requested. Lazily coded."
             self.msg(channel, msg)
 
-
         #URL Fetchers & Integrated Utilities
 
         if msg == "!bbc":
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
             description = fd.entries[0].description
             link = fd.entries[0].link
-            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
+            fd = "\x02THE NEWS\x02: \x1D%s\x1D - \x02Read More\x02: %s" % (description, link)
 
             self.msg(channel, fd.encode('UTF-8'))
 
-        if msg == "!bbc +":
+        if msg == "!bbc random":
+            r = random.randint(0, 72)
             fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
-            description = fd.entries[1].description
-            link = fd.entries[1].link
-            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
+            description = fd.entries[r].description
+            link = fd.entries[r].link
+            fd = "\x02THE NEWS\x02: \x1D%s\x1D - \x02Read More\x02: %s" % (description, link)
             self.lineRate = 2
-
-            self.msg(channel, fd.encode('UTF-8'))
-
-        if msg == "!bbc ++":
-            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
-            description = fd.entries[2].description
-            link = fd.entries[2].link
-            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
-            self.lineRate = 2.5
-
-            self.msg(channel, fd.encode('UTF-8'))
-
-        if msg == "!bbc +++":
-            fd = feedparser.parse('http://feeds.bbci.co.uk/news/rss.xml?edition=int')
-            description = fd.entries[3].description
-            link = fd.entries[3].link
-            fd = "\x02THE NEWS\x02: %s - Read More: %s" % (description, link)
-            self.lineRate = 3
 
             self.msg(channel, fd.encode('UTF-8'))
 
@@ -237,6 +258,8 @@ class ThorBot(irc.IRCClient):
             #This is lazy. It's unorthodox. Why do I use it? Because it works.
             #99.98% of the time, anyway.
 
+            #TODO The above is unacceptable. Find another way to make it work.
+
             wlist = msg.split(' ')
 
             addend = itemgetter(1)(wlist)
@@ -255,20 +278,14 @@ class ThorBot(irc.IRCClient):
         #Misc
 
         if msg.startswith('!pornhub'):
+            #For RadActiveLobstr.
             msg = "%s, I'm not that kind of bot." % user
             self.msg(channel, msg)
 
         if msg.startswith('!pronhub'):
+            #For RadActiveLobstr.
             msg = "Did you mean !pornhub?"
             self.msg(channel, msg)
-
-        if msg == "!dance":
-            msg = "<(o.o<)\r\n" \
-                  "(>o.o)>\r\n" \
-                  "^(o.o)^\r\n" \
-                  "v(o.o)v\r\n" \
-                  "<(o.o)>\r\n"
-            self.notice(channel, msg)
 
         if msg == "!help":
             msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
@@ -277,17 +294,14 @@ class ThorBot(irc.IRCClient):
 
         if msg == "!version":
             #Passes version and version number to channel
+            #TODO Consider removing.
+
             msg = "Version | {vnam} | {vnum} | {venv}".format(vnam=versionName, vnum=versionNumber,
                                                               venv=versionEnv)
-            self.msg(channel, msg)
-
-        if msg.startswith("!info"):
-            #If called, states owner and nickname
-            owner = cfg.get('Users', 'Owner')
-            msg = "Hello, {u}. I am {n}, a bot belonging to {o}".format(u=user, n=self.nickname, o=owner)
-            self.msg(channel, msg)
 
     #IRC CALLBACKS
+
+    #TODO Add more?
 
     def alterCollidedNick(self, nickname):
         return nickname + 'Clone'
