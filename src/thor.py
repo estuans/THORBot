@@ -9,12 +9,12 @@ WolframAlpha integration will come later.
 # TWISTED Imports
 from twisted.words.protocols import irc
 
-
-
 # INTERNAL Imports
 
 #SYS Imports
 import random
+import shelve
+import datetime
 
 #OTHER Imports
 import ConfigParser
@@ -88,13 +88,13 @@ class ThorBot(irc.IRCClient):
         self.join(self.factory.channel)
 
     def joined(self, channel):
-        #TODO Track their names?
 
         #Called when joining a channel
         print "Joined %s" % channel
         self.sendLine("MODE {nickname} {mode}".format(nickname=self.nickname, mode="+B"))
 
     def userJoined(self, user, channel):
+
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
 
@@ -279,7 +279,7 @@ class ThorBot(irc.IRCClient):
             msg = rj['value']['joke']
             self.msg(channel, msg.encode('utf-8', 'ignore'))
 
-        #Misc
+        # Misc
 
         if msg.startswith('!pornhub'):
             #For RadActiveLobstr.
@@ -295,6 +295,36 @@ class ThorBot(irc.IRCClient):
             msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
                   "text], !qdb [number]"
             self.notice(user, msg)
+
+        # Reminder
+
+        if msg.startswith('!remind'):
+            sh = shelve.open('reminders')
+            spl = msg.split(' ')
+            _from = user
+            timestamp = datetime.date.today()
+            target = itemgetter(1)(spl)
+            reminder = itemgetter(slice(2, None))(spl)
+            reminder_ = ' '.join(reminder)
+            data = '(%s) %s reminds you... %s' % (timestamp, _from, reminder_)
+            sh[target] = data
+            msg = "I'll remind %s about that, %s" % (target, user)
+            self.msg(channel, msg)
+
+            if IndexError:
+                pass
+
+        if msg.__contains__(self.nickname and "reminder" or "Reminder" or "reminders" or "Reminders"):
+            sh = shelve.open('reminders')
+            rfor = user
+            reminder = sh[rfor]
+            reply = "[%s] %s" % (user, reminder)
+            self.msg(channel, reply)
+
+        if msg.startswith('.debugreminder'):
+            sh = shelve.open('reminders')
+            klist = sh.keys()
+            print klist
 
     #IRC CALLBACKS
 

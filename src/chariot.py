@@ -20,7 +20,7 @@ cfg.read("magni.ini")
 #port = cfg.getint('Connection', 'Port')
 #__channels = cfg.get('Connection', 'Channels')
 
-__channels = '#gamefront'
+__channels = '#welcome'
 server = 'aurora.irc.arloria.net'
 port = int(6667)
 
