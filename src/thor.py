@@ -358,14 +358,19 @@ class ThorBot(irc.IRCClient):
             sh = shelve.open('reminders')
             rfor = user
 
-            #Check if there's a reminder
-            reminder = sh[rfor]
+            check = sh.has_key(rfor)
 
-            #Reply with reminder
-            reply = "[%s] %s" % (user, reminder)
-            self.msg(channel, reply)
+            if check is True:
+                #Checks if key exists
+                reminder = sh[rfor]
+                reply = "[%s] %s" % (user, reminder)
+                self.msg(channel, reply)
 
-            del sh[rfor]
+                #And deletes them
+                del sh[rfor]
+
+            elif check is False:
+                pass
 
         if msg.startswith('.debugreminder'):
             sh = shelve.open('reminders')
