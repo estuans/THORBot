@@ -8,12 +8,10 @@ WolframAlpha integration will come later.
 
 # TWISTED Imports
 from twisted.words.protocols import irc
-import twisted.words
 
 
 
 # INTERNAL Imports
-from modules import goslate
 
 #SYS Imports
 import random
@@ -32,6 +30,7 @@ import requests
 #None of the following lines down to the config parser are of any consequence
 #to the code itself, and were merely added to poke fun at the sometimes
 #arbitrary nature of version numbers in software today.
+from src.modules import goslate
 
 versionName = "Magni"
 versionNumber = "18/11/2014 GMT-2-0305 | MAGNI"
@@ -108,6 +107,11 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!calc" or "!Calc"):
 
+            if IndexError:
+                error = "ERROR: list index out of range"
+                self.msg(channel, error)
+                return
+
             calclist = msg.split(' ')
 
             #Fetch arguments
@@ -151,12 +155,12 @@ class ThorBot(irc.IRCClient):
                 reply = "%s / %s = %s" % (calc1, calc2, result)
                 self.msg(channel, reply)
 
-            if opera == '-':
+            if opera is '-':
                 result = calc1 - calc2
                 reply = "%s - %s = %s" % (calc1, calc2, result)
                 self.msg(channel, reply)
 
-            if opera == '*':
+            if opera is '*':
                 result = calc1 * calc2
                 reply = "%s * %s = %s" % (calc1, calc2, result)
                 self.msg(channel, reply)
@@ -291,13 +295,6 @@ class ThorBot(irc.IRCClient):
             msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
                   "text], !qdb [number]"
             self.notice(user, msg)
-
-        if msg == "!version":
-            #Passes version and version number to channel
-            #TODO Consider removing.
-
-            msg = "Version | {vnam} | {vnum} | {venv}".format(vnam=versionName, vnum=versionNumber,
-                                                              venv=versionEnv)
 
     #IRC CALLBACKS
 

@@ -9,7 +9,7 @@ import ConfigParser
 from twisted.internet import protocol, reactor
 from twisted.python import log
 
-from thor import ThorBot
+from src.thor import ThorBot
 
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
