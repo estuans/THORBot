@@ -95,6 +95,18 @@ class ThorBot(irc.IRCClient):
 
     def userJoined(self, user, channel):
 
+        #Checks when a user joins if there are any reminders available for them
+        sh = shelve.open('reminders')
+        rfor = user
+        reminder = sh[rfor]
+        if KeyError:
+            pass
+        reply = "[%s] %s" % (user, reminder)
+        self.msg(channel, reply)
+
+        #And deletes them
+        del sh[rfor]
+
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
 
@@ -299,14 +311,22 @@ class ThorBot(irc.IRCClient):
         # Reminder
 
         if msg.startswith('!remind'):
+
+            #Open the shelf
             sh = shelve.open('reminders')
             spl = msg.split(' ')
+
+            #Get user, datetime, key(target) and data(reminder)
             _from = user
             timestamp = datetime.date.today()
             target = itemgetter(1)(spl)
             reminder = itemgetter(slice(2, None))(spl)
             reminder_ = ' '.join(reminder)
+
+            #Alter data to include timestamp and user
             data = '(%s) %s reminds you... %s' % (timestamp, _from, reminder_)
+
+            #Throw it into the shelf
             sh[target] = data
             msg = "I'll remind %s about that, %s" % (target, user)
             self.msg(channel, msg)
@@ -315,11 +335,19 @@ class ThorBot(irc.IRCClient):
                 pass
 
         if msg.__contains__(self.nickname and "reminder" or "Reminder" or "reminders" or "Reminders"):
+
+            #Open shelf
             sh = shelve.open('reminders')
             rfor = user
+
+            #Check if there's a reminder
             reminder = sh[rfor]
+
+            #Reply with reminder
             reply = "[%s] %s" % (user, reminder)
             self.msg(channel, reply)
+
+            del sh[rfor]
 
         if msg.startswith('.debugreminder'):
             sh = shelve.open('reminders')
