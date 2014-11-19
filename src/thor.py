@@ -15,6 +15,7 @@ from twisted.words.protocols import irc
 import random
 import shelve
 import datetime
+import time
 
 #OTHER Imports
 import ConfigParser
@@ -33,7 +34,7 @@ import requests
 from src.modules import goslate
 
 versionName = "Magni"
-versionNumber = "18/11/2014 GMT-2-0305 | MAGNI"
+versionNumber = "19-11-2014 GMT+1-1541 | MAGNI"
 versionEnv = "Python 2.7.3"
 
 ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
@@ -112,6 +113,16 @@ class ThorBot(irc.IRCClient):
 
     def privmsg(self, user, channel, msg):
         user = user.split('!', 1)[0]
+
+        if not msg.startswith('!remind'):
+            sh = shelve.open('reminders')
+            rfor = user
+            reminder = sh[rfor]
+            reply = "[%s] %s" % (user, reminder)
+            self.msg(channel, reply)
+
+            #And deletes them
+            del sh[rfor]
 
         #Calculator
 
