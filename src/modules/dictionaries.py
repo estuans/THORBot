@@ -28,3 +28,17 @@ class Randict():
                                                                                                           "that is the "
                                                                                                           "question.",
                    "They do not love, that do not show their love.", "Suspicion always haunts the guilty mind.",]
+
+    weapons = ["a KeyError", "a duck", "a cat", "a large truck", "an IndexError", "five angry men", "a copy of 50 Shade"
+                                                                                                    "s of grey",
+               "a namespace", "every character in A Song of Ice and Fire", "a dude named Timothy", "a poorly written"
+                                                                                                   " letter of "
+                                                                                                   "commendation",
+               "an interesting argument", "Smek", "poorly coded Python bots", "GitHub commits", "Microsoft products",
+               "Lennier", "a netsplit", "a Starbucks employee", "six incredibly long novels", "a HTML 400 code",
+               "a ThorBot derivative", "a dictionary", "poorly constructed puns", "Sheep's ACMS", "an MPress installat"
+                                                                                                  "ion",
+               "a WordPress installation", "poor language skills", "an EggDrop bot", "a Bash quote", "weird ramblings",
+               "Sean Connery's accent", "Saturn", "Jupiter", "Mars", "a galaxy", "a fringe theory", "the NHS",
+               "Tony Abbott", "forgotten Hollywood actors", "people without a sense of fashion",
+               "a Bittersweet Symphony", "a washed up rapper", "poor grammar skillz", "unclosed brackets"]
