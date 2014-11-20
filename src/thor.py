@@ -26,20 +26,12 @@ from operator import itemgetter
 # HTTP Handlers
 import requests
 
-#Version Information
-
-#None of the following lines down to the config parser are of any consequence
-#to the code itself, and were merely added to poke fun at the sometimes
-#arbitrary nature of version numbers in software today.
 from modules import goslate
 
 versionName = "Magni"
-versionNumber = "19-11-2014 GMT+1-1541 | MAGNI"
 versionEnv = "Python 2.7.3"
 
 ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
-
-#Config parser. Could be replaced in the future?
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
 cfg.read("magni.ini")
@@ -52,12 +44,8 @@ class ThorBot(irc.IRCClient):
     """
 
     def __init__(self):
-        #TODO Cthulhu must answer for his crimes against my code!
         nickname = cfg.get('Bot Settings', 'Nickname')
         password = cfg.get('Bot Settings', 'NickPass')
-        realname = "THORBot @ VALHALLA"
-        #nickname = 'MagniaBotius'
-        #password = 'magniabotius'
         realname = 'Magni[THORBOT] @ VALHALLA'
 
         self.realname = realname
@@ -112,18 +100,22 @@ class ThorBot(irc.IRCClient):
         self.sendLine("MODE {nickname} {mode}".format(nickname=self.nickname, mode="+B"))
 
     def userJoined(self, user, channel):
-
         #Checks when a user joins if there are any reminders available for them
         sh = shelve.open('reminders')
         rfor = user
-        reminder = sh[rfor]
-        if KeyError:
-            pass
-        reply = "[%s] %s" % (user, reminder)
-        self.msg(channel, reply)
+        check = sh.has_key(rfor)
 
-        #And deletes them
-        del sh[rfor]
+        if check is True:
+            #Checks if key exists
+            reminder = sh[rfor]
+            reply = "[%s] %s" % (user, reminder)
+            self.msg(channel, reply)
+
+            #And deletes them
+            del sh[rfor]
+
+        elif check is False:
+            pass
 
         #Called when another user joins a channel
         print "%s has joined %s" % (user, channel)
@@ -147,6 +139,15 @@ class ThorBot(irc.IRCClient):
 
             elif check is False:
                 pass
+
+        #Dict Tester
+        if msg.startswith("!slap"):
+            slappee = msg.split(' ')
+            slapped = itemgetter(1)(slappee)
+            weapon = dictionaries.Randict.weapons
+            weaponscore = random.choice(weapon)
+            attack = "\x02%s slapped %s with %s\x02" % (user, slapped, weaponscore)
+            self.msg(channel, attack)
 
         if msg.startswith("!shakeit"):
             d = dictionaries.Randict
