@@ -10,20 +10,20 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 # INTERNAL Imports
+from modules import dictionaries
 
-#SYS Imports
+# SYS Imports
 import random
 import shelve
 import datetime
-import time
 
-#OTHER Imports
+# OTHER Imports
 import ConfigParser
 import feedparser
 import ctypes
 from operator import itemgetter
 
-#HTTP Handlers
+# HTTP Handlers
 import requests
 
 #Version Information
@@ -31,7 +31,7 @@ import requests
 #None of the following lines down to the config parser are of any consequence
 #to the code itself, and were merely added to poke fun at the sometimes
 #arbitrary nature of version numbers in software today.
-from src.modules import goslate
+from modules import goslate
 
 versionName = "Magni"
 versionNumber = "19-11-2014 GMT+1-1541 | MAGNI"
@@ -53,11 +53,11 @@ class ThorBot(irc.IRCClient):
 
     def __init__(self):
         #TODO Cthulhu must answer for his crimes against my code!
-        #nickname = cfg.get('Bot Settings', 'Nickname')
-        #password = cfg.get('Bot Settings', 'NickPass')
-        #realname = "THORBot @ VALHALLA"
-        nickname = 'Magni'
-        password = ''
+        nickname = cfg.get('Bot Settings', 'Nickname')
+        password = cfg.get('Bot Settings', 'NickPass')
+        realname = "THORBot @ VALHALLA"
+        #nickname = 'MagniaBotius'
+        #password = 'magniabotius'
         realname = 'Magni[THORBOT] @ VALHALLA'
 
         self.realname = realname
@@ -66,7 +66,7 @@ class ThorBot(irc.IRCClient):
         self.lineRate = 1
 
     def connectionMade(self):
-        #First we connect
+
         irc.IRCClient.connectionMade(self)
 
     def connectionLost(self, reason):
@@ -83,10 +83,27 @@ class ThorBot(irc.IRCClient):
 
     #EVENTS
 
+    def irc_unknown(self, prefix, command, params):
+
+        ic = ["#jacoders", "#church_of_smek"]
+
+        if command == "INVITE":
+            if params[1] in ic[:]:
+                return
+            else:
+                self.join(params[1])
+
     def signedOn(self):
         #Called when signing on
         print "Signed on successfully"
         self.join(self.factory.channel)
+
+    def whois(self, nickname, server=None):
+        #Blatantly stolen from http://goo.gl/lwD47Q
+        if server is None:
+            pass
+        else:
+            self.sendline('WHOIS %s %s' % (server, nickname))
 
     def joined(self, channel):
 
@@ -130,6 +147,11 @@ class ThorBot(irc.IRCClient):
 
             elif check is False:
                 pass
+
+        if msg.startswith("!shakeit"):
+            d = dictionaries.Randict
+            shake = random.choice(d.shakespeare)
+            self.msg(channel, shake)
 
         #Calculator
 
@@ -330,19 +352,25 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith('!remind'):
 
+            dt = datetime.datetime
+            str_check = "Smek"
+
+            if msg.__contains__(str_check.lower()):
+                return
+
             #Open the shelf
             sh = shelve.open('reminders')
             spl = msg.split(' ')
 
             #Get user, datetime, key(target) and data(reminder)
             _from = user
-            timestamp = datetime.date.today()
+            timestamp = dt.today()
             target = itemgetter(1)(spl)
             reminder = itemgetter(slice(2, None))(spl)
             reminder_ = ' '.join(reminder)
 
             #Alter data to include timestamp and user
-            data = '(%s) %s reminds you... %s' % (timestamp, _from, reminder_)
+            data = '(%s) %s reminds you: %s' % (timestamp, _from, reminder_)
 
             #Throw it into the shelf
             sh[target] = data
@@ -350,26 +378,6 @@ class ThorBot(irc.IRCClient):
             self.msg(channel, msg)
 
             if IndexError:
-                pass
-
-        if msg.__contains__(self.nickname and "reminder" or "Reminder" or "reminders" or "Reminders"):
-
-            #Open shelf
-            sh = shelve.open('reminders')
-            rfor = user
-
-            check = sh.has_key(rfor)
-
-            if check is True:
-                #Checks if key exists
-                reminder = sh[rfor]
-                reply = "[%s] %s" % (user, reminder)
-                self.msg(channel, reply)
-
-                #And deletes them
-                del sh[rfor]
-
-            elif check is False:
                 pass
 
         if msg.startswith('.debugreminder'):
