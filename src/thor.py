@@ -47,11 +47,13 @@ class ThorBot(irc.IRCClient):
     def __init__(self):
         nickname = cfg.get('Bot Settings', 'Nickname')
         password = cfg.get('Bot Settings', 'NickPass')
+        advanced_mode = cfg.getboolean('Bot Settings', 'Advanced')
         realname = 'Magni[THORBOT] @ VALHALLA'
 
         self.realname = realname
         self.nickname = nickname
         self.password = password
+        self.advanced = advanced_mode
         self.lineRate = 1
 
     def connectionMade(self):
@@ -161,47 +163,67 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!calc" or "!Calc"):
 
-            try:
-                #import pdb; pdb.set_trace()
-                arglist = msg.split('alc ')
+            arglist = msg.split('alc ')
+            reply = ""
 
-                calclist = arglist[1].split(" ")
-                #Fetch arguments
+            if self.advanced:
+                from math import *
 
-                calc1 = itemgetter(0)(calclist)
-                opera = itemgetter(1)(calclist)
-                calc2 = itemgetter(2)(calclist)
+                arg = arglist[1]
+                #make a list of safe functions
+                safe_list = ['math','acos', 'asin', 'atan', 'atan2', 'ceil', 'cos', 'cosh', 'degrees',\
+                             'e', 'exp', 'fabs', 'floor', 'fmod', 'frexp', 'hypot', 'ldexp', 'log',\
+                             'log10', 'modf', 'pi', 'pow', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh']
+                #use the list to filter the local namespace
+                safe_dict = dict([ (k, locals().get(k, None)) for k in safe_list ])
+                #add any needed builtins back in.
+                safe_dict['abs'] = abs
 
-            except IndexError:
-                error = "ERROR: list index out of range"
-                self.msg(channel, error)
-                return
+                result = eval(arg,{"__builtins__":None},safe_dict)
+                reply = "%s = %s " % (arg,result)
 
-            #Translate to int
-            calc1 = int(calc1)
-            calc2 = int(calc2)
+            else:
+                try:
+                    #import pdb; pdb.set_trace()
+                    arglist = msg.split('alc ')
 
-            #Check if Operator is valid
-            valid = ['+', '/', '-', '*', '%']
+                    calclist = arglist[1].split(" ")
+                    #Fetch arguments
+
+                    calc1 = itemgetter(0)(calclist)
+                    opera = itemgetter(1)(calclist)
+                    calc2 = itemgetter(2)(calclist)
+
+                except IndexError:
+                    error = "ERROR: list index out of range"
+                    self.msg(channel, error)
+                    return
+
+                #Translate to int
+                calc1 = int(calc1)
+                calc2 = int(calc2)
+
+                #Check if Operator is valid
+                valid = ['+', '/', '-', '*', '%']
 
 
-            if calc1 != int(calc1):
-                msg = "ERROR: ARG1 INCORRECT"
-                self.msg(channel, msg)
+                if calc1 != int(calc1):
+                    msg = "ERROR: ARG1 INCORRECT"
+                    self.msg(channel, msg)
 
-            if opera not in valid:
-                msg = "ERROR: OPERATOR INCORRECT"
-                self.msg(channel, msg)
+                if opera not in valid:
+                    msg = "ERROR: OPERATOR INCORRECT"
+                    self.msg(channel, msg)
 
-            if calc2 != int(calc2):
-                msg = "ERROR: ARG2 INCORRECT"
-                self.msg(channel, msg)
+                if calc2 != int(calc2):
+                    msg = "ERROR: ARG2 INCORRECT"
+                    self.msg(channel, msg)
 
-            #Use the very dangerous eval function
-            result = eval("{0}{1}{2}".format(calc1,opera,calc2))
-            reply = "%s %s %s = %s" % (calc1, opera, calc2, result)
+                #Use the very dangerous eval function
+                result = eval("{0}{1}{2}".format(calc1,opera,calc2))
+                reply = "%s %s %s = %s" % (calc1, opera, calc2, result)
             self.msg(channel, reply)
-            
+
         #Dice Roll
 
         if msg == "!roll":
@@ -223,6 +245,13 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!help me"):
             msg = "I'm sorry, I can't help you."
+            self.msg(channel, msg)
+
+        if msg.startswith("!help calc"):
+            if not self.advanced:
+                msg = "I can perform addition, subtraction, multiplication, division and modulo. e.g. 10 + 10"
+            else:
+                msg = "I can perform any operation supported by the Python math module - https://docs.python.org/2/library/math.html"
             self.msg(channel, msg)
 
         if msg.startswith("!help t"):
