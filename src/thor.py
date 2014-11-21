@@ -16,6 +16,7 @@ from modules import dictionaries
 import random
 import shelve
 import datetime
+import platform
 
 # OTHER Imports
 import ConfigParser
@@ -25,16 +26,16 @@ from operator import itemgetter
 
 # HTTP Handlers
 import requests
-
-from modules import goslate
+import goslate
 
 versionName = "Magni"
 versionEnv = "Python 2.7.3"
 
-ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
+if "window" in platform.system().lower():
+    ctypes.windll.kernel32.SetConsoleTitleA("THORBot @ Valhalla")
 
 cfg = ConfigParser.RawConfigParser(allow_no_value=True)
-cfg.read("magni.ini")
+cfg.read("mothi.ini")
 
 
 class ThorBot(irc.IRCClient):
@@ -160,18 +161,20 @@ class ThorBot(irc.IRCClient):
 
         if msg.startswith("!calc" or "!Calc"):
 
-            if IndexError:
+            try:
+
+                arglist = msg.split(' ')
+                calclist = arglist[1]
+                #Fetch arguments
+
+                calc1 = itemgetter(0)(calclist)
+                opera = itemgetter(1)(calclist)
+                calc2 = itemgetter(2)(calclist)
+
+            except IndexError:
                 error = "ERROR: list index out of range"
                 self.msg(channel, error)
                 return
-
-            calclist = msg.split(' ')
-
-            #Fetch arguments
-
-            calc1 = itemgetter(1)(calclist)
-            opera = itemgetter(2)(calclist)
-            calc2 = itemgetter(3)(calclist)
 
             #Translate to int
             calc1 = int(calc1)
@@ -316,11 +319,16 @@ class ThorBot(irc.IRCClient):
             #99.98% of the time, anyway.
 
             #TODO The above is unacceptable. Find another way to make it work.
+            #TODO: Use requests.
 
             wlist = msg.split(' ')
 
             addend = itemgetter(1)(wlist)
             url = "http://www.arloria.net/qdb/%s" % addend
+            quote = requests.get(url)
+
+            import rpdb; rpdb.set_trace()
+
             msg = url
             self.msg(channel, msg)
 
