@@ -157,14 +157,15 @@ class ThorBot(irc.IRCClient):
 
         #Calculator
 
-        #TODO Add a !calc command that works. Is that too much to ask? (SPOILER: Yes. Yes it is.)
+        #WARNING: This now requires spaced out args and operators, e.g. 128 / 16
 
         if msg.startswith("!calc" or "!Calc"):
 
             try:
+                #import pdb; pdb.set_trace()
+                arglist = msg.split('alc ')
 
-                arglist = msg.split(' ')
-                calclist = arglist[1]
+                calclist = arglist[1].split(" ")
                 #Fetch arguments
 
                 calc1 = itemgetter(0)(calclist)
@@ -181,46 +182,25 @@ class ThorBot(irc.IRCClient):
             calc2 = int(calc2)
 
             #Check if Operator is valid
-            valid = ['+', '/', '-', '*']
+            valid = ['+', '/', '-', '*', '%']
 
-            if calc1 == int(calc1):
-                pass
+
             if calc1 != int(calc1):
                 msg = "ERROR: ARG1 INCORRECT"
                 self.msg(channel, msg)
 
-            if opera in valid:
-                pass
             if opera not in valid:
                 msg = "ERROR: OPERATOR INCORRECT"
                 self.msg(channel, msg)
 
-            if calc2 == int(calc2):
-                pass
             if calc2 != int(calc2):
                 msg = "ERROR: ARG2 INCORRECT"
                 self.msg(channel, msg)
 
-            if opera is '+':
-                result = calc1 + calc2
-                reply = "%s + %s = %s" % (calc1, calc2, result)
-                self.msg(channel, reply)
-
-            if opera is '/':
-                result = calc1 / calc2
-                reply = "%s / %s = %s" % (calc1, calc2, result)
-                self.msg(channel, reply)
-
-            if opera is '-':
-                result = calc1 - calc2
-                reply = "%s - %s = %s" % (calc1, calc2, result)
-                self.msg(channel, reply)
-
-            if opera is '*':
-                result = calc1 * calc2
-                reply = "%s * %s = %s" % (calc1, calc2, result)
-                self.msg(channel, reply)
-
+            #Use the very dangerous eval function
+            result = eval("{0}{1}{2}".format(calc1,opera,calc2))
+            reply = "%s %s %s = %s" % (calc1, opera, calc2, result)
+            self.msg(channel, reply)
         #Dice Roll
 
         if msg == "!roll":
