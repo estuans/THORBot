@@ -201,6 +201,7 @@ class ThorBot(irc.IRCClient):
             result = eval("{0}{1}{2}".format(calc1,opera,calc2))
             reply = "%s %s %s = %s" % (calc1, opera, calc2, result)
             self.msg(channel, reply)
+            
         #Dice Roll
 
         if msg == "!roll":
