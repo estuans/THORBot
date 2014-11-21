@@ -32,6 +32,12 @@ class BaseCommand(object):
     def respond(self,message):
         self.bot.msg(self.channel,message)
 
+class OneLiner(BaseCommand):
+    msg = "One Liner"
+
+    def perform_action(self):
+        user = self.user.split('!', 1)[0]
+        self.respond(user + ": " + self.msg)
 
 class EchoTest(BaseCommand):
     help_message = "Repeats the message that's just been heard."
@@ -41,23 +47,10 @@ class EchoTest(BaseCommand):
         self.respond("Echo test: " + self.message)
 
 
-class Reminder(BaseCommand):
-    help_message = "Checks for reminders for the user that just spoke, and reminds them!"
-    listen = "remind"
+class DiceRoll(BaseCommand):
+    listen = "roll"
 
     def perform_action(self):
-        sh = shelve.open('reminders')
-        rfor = self.user
-        check = sh.has_key(rfor)
-
-        if check is True:
-            #Checks if key exists
-            reminder = sh[rfor]
-            reply = "[%s] %s" % (user, reminder)
-            self.respond(reply)
-
-            #And deletes them
-            del sh[rfor]
-
-        elif check is False:
-            pass
+        dice = random.randint(1, 100)
+        dice = str(dice)
+        self.respond(dice)

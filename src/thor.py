@@ -13,7 +13,6 @@ from twisted.words.protocols import irc
 from src.commands import BaseCommand
 
 # SYS Imports
-import shelve
 import datetime
 import platform
 
@@ -141,13 +140,6 @@ class ThorBot(irc.IRCClient):
             shake = random.choice(d.shakespeare)
             self.msg(channel, shake)
 
-        #Dice Roll
-        if msg == "!roll":
-            dice = random.randint(1, 100)
-            dice = str(dice)
-
-            self.msg(channel, dice)
-
         #Help utilities
 
         if msg.startswith("!help bbc"):
@@ -204,42 +196,6 @@ class ThorBot(irc.IRCClient):
 
             self.msg(channel, fd.encode('UTF-8'))
 
-        if msg.startswith("!t "):
-            #Translates the source language into the target language
-
-            gs = goslate.Goslate()
-
-            wlist = msg.split(' ')
-
-            slang = itemgetter(1)(wlist)
-            tlang = itemgetter(2)(wlist)
-
-            slangrep = '%s' % slang
-            tlangrep = '%s' % tlang
-
-            phrase = itemgetter(slice(3, None))(wlist)
-
-            phrase_ = ' '.join(phrase)
-            reply = gs.translate(phrase_, tlangrep, slangrep)
-
-            self.msg(channel, reply.encode('UTF-8'))
-
-        if msg.startswith("!dt "):
-            #Translates the detected string to English
-
-            gs = goslate.Goslate()
-
-            wlist = msg.split(' ')
-
-            trans = itemgetter(slice(1, None))(wlist)
-
-            trans = ' '.join(trans)
-
-            source = gs.detect(trans)
-            reply = gs.translate(trans, 'en', source)
-
-            self.msg(channel, reply.encode('UTF-8'))
-
         if msg.startswith("!qdb"):
             #This is lazy. It's unorthodox. Why do I use it? Because it works.
             #99.98% of the time, anyway.
@@ -258,67 +214,11 @@ class ThorBot(irc.IRCClient):
             msg = url
             self.msg(channel, msg)
 
-        if msg == "!joke":
-            #I hate this function. Why do I keep it?
-
-            r = requests.get("http://api.icndb.com/jokes/random?")
-            rj = r.json()
-            msg = rj['value']['joke']
-            self.msg(channel, msg.encode('utf-8', 'ignore'))
-
-        # Misc
-
-        if msg.startswith('!pornhub'):
-            #For RadActiveLobstr.
-            msg = "%s, I'm not that kind of bot." % user
-            self.msg(channel, msg)
-
-        if msg.startswith('!pronhub'):
-            #For RadActiveLobstr.
-            msg = "Did you mean !pornhub?"
-            self.msg(channel, msg)
-
         if msg == "!help":
             msg = "Commands: !dance, !disconnect, !joke, !version, !info, !t [source lang] [target lang], !dt [foreign " \
                   "text], !qdb [number]"
             self.notice(user, msg)
 
-        # Reminder
-
-        if msg.startswith('!remind'):
-
-            dt = datetime.datetime
-            str_check = "Smek"
-
-            if msg.__contains__(str_check.lower()):
-                return
-
-            #Open the shelf
-            sh = shelve.open('reminders')
-            spl = msg.split(' ')
-
-            #Get user, datetime, key(target) and data(reminder)
-            _from = user
-            timestamp = dt.today()
-            target = itemgetter(1)(spl)
-            reminder = itemgetter(slice(2, None))(spl)
-            reminder_ = ' '.join(reminder)
-
-            #Alter data to include timestamp and user
-            data = '(%s) %s reminds you: %s' % (timestamp, _from, reminder_)
-
-            #Throw it into the shelf
-            sh[target] = data
-            msg = "I'll remind %s about that, %s" % (target, user)
-            self.msg(channel, msg)
-
-            if IndexError:
-                pass
-
-        if msg.startswith('.debugreminder'):
-            sh = shelve.open('reminders')
-            klist = sh.keys()
-            print klist
 
     #IRC CALLBACKS
 
