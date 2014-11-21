@@ -10,10 +10,9 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 # INTERNAL Imports
-from modules import dictionaries
+from src.commands import BaseCommand
 
 # SYS Imports
-import random
 import shelve
 import datetime
 import platform
@@ -22,7 +21,6 @@ import platform
 import ConfigParser
 import feedparser
 import ctypes
-from operator import itemgetter
 
 # HTTP Handlers
 import requests
@@ -48,12 +46,13 @@ class ThorBot(irc.IRCClient):
         nickname = cfg.get('Bot Settings', 'Nickname')
         password = cfg.get('Bot Settings', 'NickPass')
         advanced_mode = cfg.getboolean('Bot Settings', 'Advanced')
-        realname = 'Magni[THORBOT] @ VALHALLA'
+        realname = 'Mothi[THORBOT] @ VALHALLA'
 
         self.realname = realname
         self.nickname = nickname
         self.password = password
         self.advanced = advanced_mode
+        self.superusers = cfg.get('Users', 'Superusers')
         self.lineRate = 1
 
     def connectionMade(self):
@@ -124,108 +123,25 @@ class ThorBot(irc.IRCClient):
         print "%s has joined %s" % (user, channel)
 
     def privmsg(self, user, channel, msg):
-        user = user.split('!', 1)[0]
+        # For use in class based responses.
+        class_args = {'instance':self,
+                      'user':user,
+                      'chan':channel,
+                      'message':msg}
 
         if msg:
-            sh = shelve.open('reminders')
-            rfor = user
-            check = sh.has_key(rfor)
-
-            if check is True:
-                #Checks if key exists
-                reminder = sh[rfor]
-                reply = "[%s] %s" % (user, reminder)
-                self.msg(channel, reply)
-
-                #And deletes them
-                del sh[rfor]
-
-            elif check is False:
-                pass
-
-        #Dict Tester
-        if msg.startswith("!slap"):
-            slappee = msg.split(' ')
-            slapped = itemgetter(1)(slappee)
-            weapon = dictionaries.Randict.weapons
-            weaponscore = random.choice(weapon)
-            attack = "\x02%s slapped %s with %s\x02" % (user, slapped, weaponscore)
-            self.msg(channel, attack)
+            #Iterate through the registered commands and perform actions as necessary.
+            for klass in BaseCommand.__subclasses__():
+                result = klass(**class_args).test_message()
+                if result:
+                    break
 
         if msg.startswith("!shakeit"):
             d = dictionaries.Randict
             shake = random.choice(d.shakespeare)
             self.msg(channel, shake)
 
-        #Calculator
-
-        #WARNING: This now requires spaced out args and operators, e.g. 128 / 16
-
-        if msg.startswith("!calc" or "!Calc"):
-
-            arglist = msg.split('alc ')
-            reply = ""
-
-            if self.advanced:
-                from math import *
-
-                arg = arglist[1]
-                #make a list of safe functions
-                safe_list = ['math','acos', 'asin', 'atan', 'atan2', 'ceil', 'cos', 'cosh', 'degrees',\
-                             'e', 'exp', 'fabs', 'floor', 'fmod', 'frexp', 'hypot', 'ldexp', 'log',\
-                             'log10', 'modf', 'pi', 'pow', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh']
-                #use the list to filter the local namespace
-                safe_dict = dict([ (k, locals().get(k, None)) for k in safe_list ])
-                #add any needed builtins back in.
-                safe_dict['abs'] = abs
-
-                result = eval(arg,{"__builtins__":None},safe_dict)
-                reply = "%s = %s " % (arg,result)
-
-            else:
-                try:
-                    #import pdb; pdb.set_trace()
-                    arglist = msg.split('alc ')
-
-                    calclist = arglist[1].split(" ")
-                    #Fetch arguments
-
-                    calc1 = itemgetter(0)(calclist)
-                    opera = itemgetter(1)(calclist)
-                    calc2 = itemgetter(2)(calclist)
-
-                except IndexError:
-                    error = "ERROR: list index out of range"
-                    self.msg(channel, error)
-                    return
-
-                #Translate to int
-                calc1 = int(calc1)
-                calc2 = int(calc2)
-
-                #Check if Operator is valid
-                valid = ['+', '/', '-', '*', '%']
-
-
-                if calc1 != int(calc1):
-                    msg = "ERROR: ARG1 INCORRECT"
-                    self.msg(channel, msg)
-
-                if opera not in valid:
-                    msg = "ERROR: OPERATOR INCORRECT"
-                    self.msg(channel, msg)
-
-                if calc2 != int(calc2):
-                    msg = "ERROR: ARG2 INCORRECT"
-                    self.msg(channel, msg)
-
-                #Use the very dangerous eval function
-                result = eval("{0}{1}{2}".format(calc1,opera,calc2))
-                reply = "%s %s %s = %s" % (calc1, opera, calc2, result)
-            self.msg(channel, reply)
-
         #Dice Roll
-
         if msg == "!roll":
             dice = random.randint(1, 100)
             dice = str(dice)
