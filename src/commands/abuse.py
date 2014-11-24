@@ -1,9 +1,13 @@
 from operator import itemgetter
 import random
+import requests
+import HTMLParser
 
 # Project imports
 from .base import BaseCommand, OneLiner
 from ..modules import dictionaries
+
+htmlparse = HTMLParser.HTMLParser()
 
 class Slap(BaseCommand):
 
@@ -20,16 +24,14 @@ class Slap(BaseCommand):
 
         self.respond(attack)
 
+class Joke(BaseCommand):
+    listen = "joke"
 
-        if msg == "!joke":
-            #I hate this function. Why do I keep it?
-
-            r = requests.get("http://api.icndb.com/jokes/random?")
-            rj = r.json()
-            msg = rj['value']['joke']
-            self.msg(channel, msg.encode('utf-8', 'ignore'))
-
-        # Misc
+    def perform_action(self):
+        r = requests.get("http://api.icndb.com/jokes/random?")
+        rj = r.json()
+        msg = rj['value']['joke']
+        self.respond(htmlparse.unescape(msg).encode('utf-8', 'ignore'))
 
 class PornHub(OneLiner):
     listen = 'pornhub'

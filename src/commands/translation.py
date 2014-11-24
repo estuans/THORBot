@@ -5,7 +5,7 @@ from operator import itemgetter
 from base import BaseCommand
 
 class TranslateTo(BaseCommand):
-    listen = "t"
+    listen = "tr"
     help_message = "Translates the source language into the target language"
 
     def perform_action(self):

@@ -1,5 +1,5 @@
 import logging
-
+import random
 
 class BaseCommand(object):
     help_message = "This the base command class, does nothing."
@@ -12,6 +12,11 @@ class BaseCommand(object):
     @property
     def trigger(self):
         return self.predicate + self.listen
+
+    @property
+    def enabled(self):
+        #Override this if you want to use fancy status checking
+        return True
 
     def __init__(self,*args,**kwargs):
         self.bot = kwargs.get('instance')
@@ -34,10 +39,10 @@ class BaseCommand(object):
 
 class OneLiner(BaseCommand):
     msg = "One Liner"
-
+    listen = "OneLiner"
     def perform_action(self):
-        user = self.user.split('!', 1)[0]
-        self.respond(user + ": " + self.msg)
+        #user = self.user.split('!', 1)[0]
+        self.respond(self.user + ": " + self.msg)
 
 class EchoTest(BaseCommand):
     help_message = "Repeats the message that's just been heard."

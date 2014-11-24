@@ -10,7 +10,7 @@ WolframAlpha integration will come later.
 from twisted.words.protocols import irc
 
 # INTERNAL Imports
-from src.commands import BaseCommand
+from src.commands import BaseCommand, OneLiner
 
 # SYS Imports
 import datetime
@@ -124,16 +124,29 @@ class ThorBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         # For use in class based responses.
         class_args = {'instance':self,
-                      'user':user,
+                      'user':user.split('!', 1)[0],
                       'chan':channel,
                       'message':msg}
 
+
+        def check_command(klass_args,klass):
+            result = False
+            if klass.__subclasses__():
+                #Maybe this is a subclass of a subclass? TODO: Refactor this.
+                for sub in klass.__subclasses__():
+                    result = check_command(klass_args,sub)
+                    if result:
+                        break
+            else:
+                cmd = klass(**class_args)
+                if cmd.enabled:
+                    result = cmd.test_message()
+            return result
+
+
         if msg:
             #Iterate through the registered commands and perform actions as necessary.
-            for klass in BaseCommand.__subclasses__():
-                result = klass(**class_args).test_message()
-                if result:
-                    break
+            check_command(class_args,BaseCommand)
 
         if msg.startswith("!shakeit"):
             d = dictionaries.Randict

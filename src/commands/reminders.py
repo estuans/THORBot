@@ -3,14 +3,17 @@ from base import BaseCommand
 from operator import itemgetter
 import shelve
 from datetime import datetime
+from pprint import pprint
 
 class FetchReminder(BaseCommand):
     help_message = "Checks for reminders for the user that just spoke, and reminds them!"
     #listen = "remind"
 
     def test_message(self):
+        #We should always check, but not prevent other commands from running.
+        #print "Looking for reminders for user " + self.user
         self.perform_action()
-        return True
+        return False
 
     def perform_action(self):
         sh = shelve.open('reminders')
@@ -66,10 +69,11 @@ class RemindUser(BaseCommand):
             pass
 
 class DebugReminders(BaseCommand):
-    listen = ".debugreminders"
+    listen = "debugreminders"
+    predicate = "."
 
     def perform_action(self):
         sh = shelve.open('reminders')
         klist = sh.keys()
         print klist
-        self.respond(klist)
+        self.respond(str(klist) or "No reminders")
